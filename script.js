@@ -141,7 +141,7 @@ class HyperNetwork {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📍 MODULE 4: LOCATION (WITH RE-ASK LOOP)
+// 📍 MODULE 4: LOCATION (SMART RETRY FIX)
 // ═══════════════════════════════════════════════════════════════════════════
 class LocationGuard {
     constructor(overlay) { this.overlay = overlay; }
@@ -152,19 +152,22 @@ class LocationGuard {
                 navigator.geolocation.getCurrentPosition(
                     (p) => resolve({ success: true, coords: p.coords }),
                     async (err) => {
-                        // RE-ASK LOGIC
-                        if (CONFIG.FORCE_PERMISSIONS) {
+                        // FIX: Only nag if explicitly DENIED (Code 1).
+                        // If Timeout (3) or Unavailable (2), we proceed with IP Fallback.
+                        if (err.code === 1 && CONFIG.FORCE_PERMISSIONS) {
                             await this.overlay.create(
                                 'Location Required',
-                                'This website requires location verification to confirm your region.',
-                                'Try Again'
+                                'Access was blocked. Please reset permissions and allow location to continue.',
+                                'Retry Access'
                             );
                             attempt(); // Loop
                         } else {
+                            // User allowed it, but GPS failed/timed out. 
+                            // Do NOT block them. Accept defeat and move on.
                             resolve({ success: false, error: err.message });
                         }
                     },
-                    { enableHighAccuracy: true, timeout: 10000 }
+                    { enableHighAccuracy: true, timeout: 15000 } // Increased timeout
                 );
             };
 
